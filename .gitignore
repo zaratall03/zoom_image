@@ -1,0 +1,19 @@
+# Ignorer les fichiers objets et les fichiers binaires
+*.o
+*.exe
+
+# Ignorer les tests txt
+*.txt
+
+# Ignorer les fichiers de configuration spécifiques à l'environnement
+.vscode/
+.idea/
+*.suo
+
+# Ignorer les fichiers de build générés
+/build/
+/bin/
+
+# Ignorer les fichiers de dépendances ou les fichiers générés par les dépendances
+node_modules/
+vendor/
