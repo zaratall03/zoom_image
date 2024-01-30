@@ -7,7 +7,7 @@ objects-src-dir := ./src/gui/obj
 
 needed-target = window_fnct
 
-all: lwindow
+all: window
 
 window: ./src/gui/main.c $(needed-target)
 	@echo "Compilation of programme in GUI..."
@@ -22,11 +22,10 @@ GUI: needed_folder window
 	$(compiled-dir)/window
 
 needed_folder:
-	@if [ ! -d $(compiled-dir) ]; then \
-		echo "Creation of executable folder..."; \
-		mkdir -p $(compiled-dir); \
-	fi
-	@if [ ! -d $(compiled-objects-dir) ]; then \
-		echo "Creation of objects folder..."; \
-		mkdir -p $(compiled-objects-dir); \
-	fi
+	echo "Creation of executable folder...";
+	mkdir "$(compiled-dir)";
+	echo "Creation of objects folder...";
+	mkdir "$(compiled-objects-dir)";
+
+clean : 
+	rm -r $(compiled-dir)
