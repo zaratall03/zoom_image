@@ -22,20 +22,18 @@ window_fnct :
 GUI: window
 	@echo "Launch main program in GUI..."
 
-engine: ./src/engine/test_main_stb.c
-	gcc -DSTB_IMAGE_IMPLEMENTATION $(lib-include-path) $< -o $(compiled-dir)/$@
+engine: ./src/engine/test_main_stb.c ./exe/obj/image.o
+	gcc -DSTB_IMAGE_IMPLEMENTATION $(lib-include-path) $^ -o $(compiled-dir)/$@
 
 exe-GUI : 
 	$(compiled-dir)/window
-	
-exe-engine : 
-	$(compiled-dir)/engine >  $(result-file)/engine.txt
 
-image : ./src/engine/obj/image.c
-	gcc -DSTB_IMAGE_IMPLEMENTATION $(lib-include-path) $(linkage-opt) $< -o $(compiled-objects-dir)/$@
 
-exe-image :
-	$(compiled-objects-dir)/image
+image : ./src/engine/obj/image.c 
+	gcc -c $< -DSTB_IMAGE_IMPLEMENTATION $(lib-include-path) -o $(compiled-objects-dir)/$@
+
+exe-engine :
+	$(compiled-objects-dir)/engine
 
 clean : 
 	rm $(compiled-dir)/*.exe
