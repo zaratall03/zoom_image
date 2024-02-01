@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "stb_image.h"
 #include "image.h"
 
 int main() {
-    Image img  = loadImage("./ressources/img.jpeg");  
+    Image img = loadImage("./ressources/imgjpeg.jpeg");
     int width = getWidth(img);  
     int height = getHeight(img); 
     int channels = getnbPixelChannels(img);
@@ -18,6 +17,11 @@ int main() {
         printf("\n");
     }
 
-    freeImage(img);
+    img = freeImage(img);
+    if(img.data == NULL){
+        printf("\nOk c'est parfait");
+    }else{
+        printf("\nC'est la merde");
+    }
     return 0;
 }

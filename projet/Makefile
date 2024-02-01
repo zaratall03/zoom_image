@@ -4,36 +4,44 @@ ext-dependencies := $(lib-include-path) $(linkage-opt) -lSDL2main -lSDL2
 compiled-dir := ./exe
 compiled-objects-dir:= $(compiled-dir)/obj
 result-file := ./results
-objects-dir-list := $(compiled-objects-dir)/window_fnct.o
-objects-src-dir := ./src/gui/obj
 
-needed-target = window_fnct
 
-all: window
 
-window: ./src/gui/main.c $(needed-target)
-	@echo "Compilation of programme in GUI..."
-	gcc $< $(objects-dir-list) $(ext-dependencies) -o $(compiled-dir)/$@
+all: engine gui
 
-window_fnct :
+# Main gui 	
+gui: ./src/gui/main.c $(compiled-objects-dir)/window_fnct.o $(compiled-objects-dir)/painter.o $(compiled-objects-dir)/image.o
+	@echo "Compilation of program in GUI..."
+	gcc $^ $(ext-dependencies) -o $(compiled-dir)/$@
+
+window_fnct : ./src/gui/obj/window_fnct.c 
 	@echo "Compilation of graphical functions needed..."
-	gcc -c $(objects-src-dir)/main_window.c $(ext-dependencies) -o $(compiled-objects-dir)/$@.o
+	gcc -c $< $(ext-dependencies) -o $(compiled-objects-dir)/$@.o
 
-GUI: window
-	@echo "Launch main program in GUI..."
 
-engine: ./src/engine/test_main_stb.c ./exe/obj/image.o
-	gcc -DSTB_IMAGE_IMPLEMENTATION $(lib-include-path) $^ -o $(compiled-dir)/$@
+engine : src/engine/test_main_stb.c exe/obj/image.o
+	gcc -DSTB_IMAGE_IMPLEMENTATION $^ $(lib-include-path) -o $(compiled-dir)/$@
 
-exe-GUI : 
-	$(compiled-dir)/window
-
+painter : ./src/gui/obj/painter.c
+	gcc -c $^ $(lib-include-path) -o $(compiled-objects-dir)/$@.o
 
 image : ./src/engine/obj/image.c 
-	gcc -c $< -DSTB_IMAGE_IMPLEMENTATION $(lib-include-path) -o $(compiled-objects-dir)/$@
+	gcc -c $< -DSTB_IMAGE_IMPLEMENTATION $(lib-include-path) -o $(compiled-objects-dir)/$@.o
 
-exe-engine :
-	$(compiled-objects-dir)/engine
+interpolation : ./src/gui/obj/interpolations.c
+	gcc -c $< $(linkage-opt) $(lib-include-path) -lm -o $(compiled-objects-dir)/$@.o
+
+
+# Execution
+compile-engine : image engine
+
+compile-gui : window_fnct painter image gui
+
+exe-gui : 
+	$(compiled-dir)/GUI
+
+exe-engine : 
+	$(compiled-dir)/engine > ./results/res.txt
 
 clean : 
 	rm $(compiled-dir)/*.exe
