@@ -1,7 +1,0 @@
-#ifndef MAIN_WINDOW_CONST
-#define MAIN_WINDOW_CONST
-
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-
-#endif
