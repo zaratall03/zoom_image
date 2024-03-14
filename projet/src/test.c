@@ -2,9 +2,9 @@
 #include "gui_f.h"
 #include "image.h"
 
-Image imageSrc; // Variable globale pour stocker l'image originale
-Image zoomedImage; // Variable globale pour stocker l'image zoomée
-GtkWidget *image; // Variable globale pour le widget GtkImage
+Image imageSrc; 
+Image zoomedImage; 
+GtkWidget *image; 
 MouseCallbackData *callbackData;
 GtkWidget *window; 
 GtkWidget *file_chooser_button;

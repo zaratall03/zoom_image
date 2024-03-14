@@ -5,7 +5,22 @@
 #include "interpolation.h"
 #include "image.h"
 
-// Fonction d'interpolation pour le zoom Hermite
+/**
+ * La fonction interpolateHermite calcule une valeur d'interpolation Hermite basée sur quatre points de
+ * contrôle et un paramètre t.
+ * 
+ * @param p0 Valeur au début du segment d'interpolation.
+ * @param p1 Point central autour duquel nous interpolons.
+ * @param p2 Deuxième point de contrôle dans l'interpolation Hermite. Utilisé avec les autres points de
+ *           contrôle (p0, p1, p3) pour calculer la valeur interpolée.
+ * @param p3 Quatrième point de contrôle dans l'interpolation Hermite. Utilisé pour calculer la valeur
+ *           interpolée en un point donné t.
+ * @param t  Facteur d'interpolation entre les points p1 et p2. Typiquement une valeur entre 0 et 1,
+ *           où 0 correspond au point p1 et 1 correspond au point p2.
+ * 
+ * @return   La valeur interpolée au temps t en utilisant l'interpolation Hermite basée sur les points
+ *           de contrôle p0, p1, p2 et p3.
+ */
 float interpolateHermite(float p0, float p1, float p2, float p3, float t) {
     float c0 = p1;
     float c1 = 0.5f * (p2 - p0);
@@ -14,9 +29,24 @@ float interpolateHermite(float p0, float p1, float p2, float p3, float t) {
     return ((c3 * t + c2) * t + c1) * t + c0;
 }
 
-// Algorithme de zoom Hermite avec paramètres de zoom et de coordonnées
+/**
+ * La fonction « zoomHermite » prend une image, un facteur de zoom et des coordonnées centrales, et
+ * effectue un zoom en utilisant l'interpolation Hermite.
+ * 
+ * @param image      L'image d'entrée sur laquelle appliquer le zoom à l'aide de l'interpolation Hermite.
+ * @param zoomFactor Le facteur par lequel l'image sera zoomée ou dézoomée. Un zoomFactor supérieur à 1
+ *                   agrandira l'image, tandis qu'un zoomFactor inférieur à 1 la réduira.
+ * @param centerX    La coordonnée x du point central autour duquel l'image sera zoomée ou dézoomée. Ce point
+ *                   sert de pivot pour l'opération de zoom, l'image s'agrandissant ou se contractant par
+ *                   rapport à ce point central.
+ * @param centerY    La coordonnée y du point central autour duquel l'image sera zoomée ou dézoomée. Ce point
+ *                   sert de pivot pour l'opération de zoom, garantissant que l'image est mise à l'échelle par
+ *                   rapport à ce point central.
+ * @return           Une nouvelle image qui a été zoomée à l'aide de l'interpolation Hermite.
+ */
+
 Image zoomHermite(Image image, float zoomFactor, int centerX, int centerY) {
-    printf("\nHermite\n");
+    printf("\nHermite");
     int newWidth = image.width;
     int newHeight = image.height;
 
@@ -55,7 +85,22 @@ Image zoomHermite(Image image, float zoomFactor, int centerX, int centerY) {
     return newImage;
 }
 
-// Algorithme de zoom plus proche voisin avec paramètres de zoom et de coordonnées
+/**
+ * La fonction zoomNearestNeighbor redimensionne une image à l'aide de l'algorithme du voisin le plus
+ * proche basé sur un facteur de zoom et des coordonnées centrales spécifiés.
+ * 
+ * @param image      L'image originale à zoomer en utilisant l'algorithme du voisin le plus proche.
+ * @param zoomFactor Le facteur par lequel l'image sera zoomée ou dézoomée. Un zoomFactor supérieur à 1
+ *                   agrandira l'image, tandis qu'un zoomFactor inférieur à 1 la réduira.
+ * @param centerX    La coordonnée x du point central autour duquel l'image sera zoomée ou dézoomée. Ce point
+ *                   sert de référence pour déterminer comment l'image doit être mise à l'échelle en fonction
+ *                   du zoomFactor.
+ * @param centerY    La coordonnée y du point central autour duquel l'image sera zoomée ou dézoomée. Ce point
+ *                   sert de référence pour déterminer comment l'image doit être mise à l'échelle en fonction
+ *                   du zoomFactor.
+ * @return           Une nouvelle image qui a été zoomée à l'aide de l'algorithme du voisin le plus proche.
+ */
+
 Image zoomNearestNeighbor(Image image, float zoomFactor, int centerX, int centerY) {
     printf("\nPlus proche voisin");
     int newWidth = image.width;
@@ -83,7 +128,23 @@ Image zoomNearestNeighbor(Image image, float zoomFactor, int centerX, int center
     return newImage;
 }
 
-// Algorithme de zoom bilinéaire avec paramètres de zoom et de coordonnées
+
+/**
+ * La fonction `zoomBilinear` effectue une interpolation bilinéaire pour zoomer une image d'un facteur
+ * spécifié autour d'un point central donné.
+ * 
+ * @param image      L'image d'entrée à zoomer. Contient des informations sur la largeur, la hauteur, les canaux et
+ *                   les pixels de l'image.
+ * @param zoomFactor Le facteur de zoom. Un facteur supérieur à 1 agrandira l'image, tandis qu'un facteur inférieur à 1
+ *                   la réduira.
+ * @param centerX    La coordonnée x du point central autour duquel l'image sera zoomée ou dézoomée. L'image s'agrandit
+ *                   ou se contracte par rapport à ce point.
+ * @param centerY    La coordonnée y du point central autour duquel l'image sera zoomée ou dézoomée. L'image s'agrandit
+ *                   ou se contracte par rapport à ce point.
+ * @return           Un nouvel objet Image qui a été zoomé à l'aide d'une interpolation bilinéaire basée sur les paramètres
+ *                   d'entrée et les données de l'image d'origine.
+ */
+
 Image zoomBilinear(Image image, float zoomFactor, int centerX, int centerY) {
     printf("\nBilineaire");
     int newWidth = image.width;
