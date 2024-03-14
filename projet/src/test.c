@@ -1,45 +1,10 @@
-#include <gtk/gtk.h>
-#include "image.h" // Assurez-vous d'avoir inclus votre fichier d'en-tête contenant les définitions de vos fonctions et de votre structure Image.
+#include "gui_fcnt.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+// Déclaration des variables globales
+Image imageSrc; // Variable globale pour stocker l'image originale
+Image zoomedImage; // Variable globale pour stocker l'image zoomée
+GtkWidget *image; // Variable globale pour le widget GtkImage
 
-#define MAX_CHANNELS 4
-
-
-gboolean on_mouse_button_press(GtkWidget *widget, GdkEventButton *event, gpointer data) {
-    if (event->type == GDK_BUTTON_PRESS && event->button == 1) {
-        gdouble x = event->x;
-        gdouble y = event->y;
-
-        GtkWidget *image = GTK_WIDGET(data);
-        GtkAllocation allocation;
-        gtk_widget_get_allocation(image, &allocation);
-
-        int image_width = allocation.width;
-        int image_height = allocation.height;
-
-        if (x >= 0 && x < image_width && y >= 0 && y < image_height) {
-            // Les coordonnées du clic de souris sont à l'intérieur de la zone de l'image
-            g_print("Clic de souris à l'intérieur de l'image: (%f, %f)\n", x, y);
-        } else {
-            // Les coordonnées du clic de souris ne sont pas à l'intérieur de l'image
-            // Trouver les coordonnées les plus proches à l'intérieur de l'image
-            double nearest_x = CLAMP(x, 0, image_width - 1);
-            double nearest_y = CLAMP(y, 0, image_height - 1);
-            g_print("Clic de souris à l'extérieur de l'image. Coordonnées les plus proches : (%f, %f)\n", nearest_x, nearest_y);
-        }
-    }
-
-    return FALSE;
-}
-// Fonction de rappel appelée lorsque le bouton est cliqué
-void on_file_selection(GtkFileChooserButton *filechooserbutton, gpointer data) {
-    const gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(filechooserbutton));
-    gtk_image_set_from_file(GTK_IMAGE(data), filename);
-}
-
-// Fonction principale
 int main(int argc, char *argv[]) {
     // Initialisation de GTK+
     gtk_init(&argc, &argv);
@@ -57,15 +22,15 @@ int main(int argc, char *argv[]) {
     gtk_widget_set_hexpand(file_chooser_button, TRUE);
 
     // Création du GtkImage pour afficher l'image sélectionnée
-    GtkWidget *image = gtk_image_new();
+    image = gtk_image_new();
     gtk_widget_set_hexpand(image, TRUE);
     gtk_widget_set_vexpand(image, TRUE);
 
     // Connecter la fonction de rappel pour mettre à jour l'image lors de la sélection du fichier
-    g_signal_connect(file_chooser_button, "file-set", G_CALLBACK(on_file_selection), image);
+    g_signal_connect(file_chooser_button, "file-set", G_CALLBACK(on_file_selection), NULL);
 
     // Connecter la fonction de rappel pour détecter les clics de souris sur la fenêtre principale
-    g_signal_connect(window, "button-press-event", G_CALLBACK(on_mouse_button_press), image);
+    g_signal_connect(window, "button-press-event", G_CALLBACK(on_mouse_button_press), NULL);
 
     // Création d'une boîte verticale pour organiser les widgets
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);

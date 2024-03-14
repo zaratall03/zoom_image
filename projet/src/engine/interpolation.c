@@ -1,49 +1,64 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "image.h"
 #include "interpolation.h"
 
-
-Image bilinear(const Image *inputImage, float zoom) {
+Image bilinear(const Image *inputImage, float zoom, int x, int y, int window_width, int window_height) {
     Image outputImage;
-    int r = inputImage->height;
-    int c = inputImage->width;
 
-    // Calcul de la taille de l'mage zoomée
-    int intZoom = (int) floor(zoom);
-    outputImage.width = c * intZoom;
-    outputImage.height = r * intZoom;
+    // Calcule les coordonnées de l'angle supérieur gauche de la fenêtre de sortie
+    int output_top_left_x = (int) (x - (window_width / (2 * zoom)));
+    int output_top_left_y = (int) (y - (window_height / (2 * zoom)));
+
+    // Calcule les coordonnées de l'angle inférieur droit de la fenêtre de sortie
+    int output_bottom_right_x = (int) (x + (window_width / (2 * zoom)));
+    int output_bottom_right_y = (int) (y + (window_height / (2 * zoom)));
+
+    // Détermine les dimensions de outputImage
+    outputImage.width = output_bottom_right_x - output_top_left_x;
+    outputImage.height = output_bottom_right_y - output_top_left_y;
     outputImage.channels = inputImage->channels;
 
     // Allocation de la mémoire pour l'image zoomée
-    outputImage.data = (unsigned char *)malloc(outputImage.width * outputImage.height * outputImage.channels);
-    
+    outputImage.data = (unsigned char *)malloc(outputImage.width * outputImage.height * outputImage.channels * sizeof(unsigned char));
     if (outputImage.data == NULL) {
         fprintf(stderr, "Erreur d'allocation de mémoire\n");
         exit(EXIT_FAILURE);
     }
 
-    int i, j, ii, jj, near_i, near_j;
-    float x, y, dx, dy, fx, fy, value;
+    int i, j;
+    float dx, dy, fx, fy;
+    int near_i, near_j;
+    int ii, jj;
+    float value;
 
     for (i = 0; i < outputImage.height; i++) {
         for (j = 0; j < outputImage.width; j++) {
-            x = j / zoom;
-            y = i / zoom;
-            near_i = (int)floor(y);
-            near_j = (int)floor(x);
-            dx = x - near_j;
-            dy = y - near_i;
-            ii = near_i * c;
-            jj = near_j;
-            fx = 1 - dx;
-            fy = 1 - dy;
-            value = fx * (fy * inputImage->data[ii + jj] + dy * inputImage->data[ii + jj + c]) +
-                    dx * (fy * inputImage->data[ii + jj + 1] + dy * inputImage->data[ii + jj + c + 1]);
-            outputImage.data[i * outputImage.width + j] = (unsigned char)value;
+            float x_region = (float)output_top_left_x + (float)j / zoom;
+            float y_region = (float)output_top_left_y + (float)i / zoom;
+
+            near_i = (int)floor(y_region);
+            near_j = (int)floor(x_region);
+
+            dx = x_region - near_j;
+            dy = y_region - near_i;
+
+            fx = 1.0 - dx;
+            fy = 1.0 - dy;
+
+            for (int channel = 0; channel < inputImage->channels; channel++) {
+                ii = near_i * inputImage->width * inputImage->channels;
+                jj = near_j * inputImage->channels;
+
+                value = fx * (fy * inputImage->data[ii + jj + channel] + dy * inputImage->data[ii + inputImage->channels + jj + channel]) +
+                        dx * (fy * inputImage->data[ii + jj + inputImage->channels + channel] + dy * inputImage->data[ii + 2 * inputImage->channels + jj + channel]);
+
+                outputImage.data[i * outputImage.width * outputImage.channels + j * outputImage.channels + channel] = (unsigned char)value;
+            }
         }
     }
+
+    printf("Fin du zoom\n");
 
     return outputImage;
 }

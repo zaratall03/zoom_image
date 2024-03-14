@@ -15,6 +15,7 @@ typedef struct Image{
 
 /**
  * Primitives
+ * 
 */
 int getWidth(Image image);
 int getHeight(Image image);
