@@ -67,7 +67,7 @@ gboolean on_mouse_button_press(GtkWidget *widget, GdkEventButton *event, gpointe
 
         float zoomFactor = 2.0; // Changer le facteur de zoom selon vos besoins
         // Appliquer le zoom bilinéaire à l'image source et obtenir l'image zoomée
-        zoomedImage = bilinear(&imageSrc, zoomFactor, nearest_x, nearest_y, image_width, image_height); 
+        zoomedImage = hermite(&imageSrc, zoomFactor, nearest_x, nearest_y, image_width, image_height); 
         
         // Convertir l'image zoomée en GdkPixbuf
         GdkPixbuf *pixbuf = convertImageToPixbuf(zoomedImage);

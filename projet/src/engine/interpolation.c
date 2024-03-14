@@ -63,7 +63,6 @@ Image bilinear(const Image *inputImage, float zoom, int x, int y, int window_wid
     return outputImage;
 }
 
-
 float hermite(float p0, float m0, float p1, float m1, float t) {
     float t2 = t * t;
     float t3 = t2 * t;
@@ -74,19 +73,17 @@ float hermite(float p0, float m0, float p1, float m1, float t) {
     return a * p0 + b * m0 + c * p1 + d * m1;
 }
 
-
-Image hermiteZoom(const Image *inputImage, float zoom) {
+Image hermiteZoom(const Image *inputImage, float zoom, int window_width, int window_height) {
     Image outputImage;
     int r = inputImage->height;
     int c = inputImage->width;
-    int intZoom = (int)  floor(zoom);
+    int intZoom = (int) floor(zoom);
     outputImage.width = c * intZoom;
     outputImage.height = r * intZoom;
     outputImage.channels = inputImage->channels;
 
     // Allocation de la mémoire pour l'image zoomée
-    outputImage.data = (unsigned char *)malloc(outputImage.width * outputImage.height * outputImage.channels);
-    
+    outputImage.data = (unsigned char *)malloc(outputImage.width * outputImage.height * outputImage.channels * sizeof(unsigned char));
     if (outputImage.data == NULL) {
         fprintf(stderr, "Erreur d'allocation de mémoire\n");
         exit(EXIT_FAILURE);
@@ -99,20 +96,33 @@ Image hermiteZoom(const Image *inputImage, float zoom) {
         for (j = 0; j < outputImage.width; j++) {
             x = j / zoom;
             y = i / zoom;
-            near_i = (int)floor(y);
-            near_j = (int)floor(x);
+            near_i = (int) floor(y);
+            near_j = (int) floor(x);
             dx = x - near_j;
             dy = y - near_i;
 
-            int i0 = near_i > 0 ? near_i - 1 : 0;
-            int i1 = near_i;
-            int i2 = near_i < r - 1 ? near_i + 1 : r - 1;
-            int i3 = near_i < r - 2 ? near_i + 2 : r - 1;
+            int half_window_width = window_width / 2;
+            int half_window_height = window_height / 2;
 
-            int j0 = near_j > 0 ? near_j - 1 : 0;
+            int i0 = near_i - half_window_height;
+            int i1 = near_i;
+            int i2 = near_i + half_window_height;
+            int i3 = near_i + 2 * half_window_height;
+
+            int j0 = near_j - half_window_width;
             int j1 = near_j;
-            int j2 = near_j < c - 1 ? near_j + 1 : c - 1;
-            int j3 = near_j < c - 2 ? near_j + 2 : c - 1;
+            int j2 = near_j + half_window_width;
+            int j3 = near_j + 2 * half_window_width;
+
+            i0 = i0 < 0 ? 0 : (i0 >= r ? r - 1 : i0);
+            i1 = i1 < 0 ? 0 : (i1 >= r ? r - 1 : i1);
+            i2 = i2 < 0 ? 0 : (i2 >= r ? r - 1 : i2);
+            i3 = i3 < 0 ? 0 : (i3 >= r ? r - 1 : i3);
+
+            j0 = j0 < 0 ? 0 : (j0 >= c ? c - 1 : j0);
+            j1 = j1 < 0 ? 0 : (j1 >= c ? c - 1 : j1);
+            j2 = j2 < 0 ? 0 : (j2 >= c ? c - 1 : j2);
+            j3 = j3 < 0 ? 0 : (j3 >= c ? c - 1 : j3);
 
             float p0 = hermite(inputImage->data[i0 * c + j0], (inputImage->data[i1 * c + j0] - inputImage->data[i0 * c + j0]) / 2.0, inputImage->data[i2 * c + j0], (inputImage->data[i2 * c + j0] - inputImage->data[i1 * c + j0]) / 2.0, dy);
             float p1 = hermite(inputImage->data[i0 * c + j1], (inputImage->data[i1 * c + j1] - inputImage->data[i0 * c + j1]) / 2.0, inputImage->data[i2 * c + j1], (inputImage->data[i2 * c + j1] - inputImage->data[i1 * c + j1]) / 2.0, dy);
@@ -120,19 +130,18 @@ Image hermiteZoom(const Image *inputImage, float zoom) {
             float p3 = hermite(inputImage->data[i0 * c + j3], (inputImage->data[i1 * c + j3] - inputImage->data[i0 * c + j3]) / 2.0, inputImage->data[i2 * c + j3], (inputImage->data[i2 * c + j3] - inputImage->data[i1 * c + j3]) / 2.0, dy);
 
             float result = hermite(p0, (p1 - p0) / 2.0, p2, (p2 - p1) / 2.0, dx);
-            outputImage.data[i * outputImage.width + j] = (unsigned char)result;
+            outputImage.data[i * outputImage.width + j] = (unsigned char) result;
         }
     }
     return outputImage;
 }
 
-
-Image nnbr(const Image *inputImage, float zoom) {
+Image nnbr(const Image *inputImage, float zoom, int window_width, int window_height) {
     Image outputImage;
     int r = inputImage->height;
     int c = inputImage->width;
 
-    int intZoom = (int)  floor(zoom);
+    int intZoom = (int)floor(zoom);
     // Calcul de la taille de l'image zoomée
     outputImage.width = c * intZoom;
     outputImage.height = r * intZoom;
@@ -140,18 +149,35 @@ Image nnbr(const Image *inputImage, float zoom) {
 
     // Allocation de la mémoire pour l'image zoomée
     outputImage.data = (unsigned char *)malloc(outputImage.width * outputImage.height * outputImage.channels);
-    
+
     if (outputImage.data == NULL) {
         fprintf(stderr, "Erreur d'allocation de mémoire\n");
         exit(EXIT_FAILURE);
     }
 
+    float inv_zoom = 1.0f / zoom;
+    int half_window_width = window_width / 2;
+    int half_window_height = window_height / 2;
     int near_i, near_j;
     for (int i = 0; i < outputImage.height; i++) {
         for (int j = 0; j < outputImage.width; j++) {
-            near_i = (int)floor(i / zoom);
-            near_j = (int)floor(j / zoom);
-            outputImage.data[i * outputImage.width + j] = inputImage->data[near_i * c + near_j];
+            near_i = (int)floor(i * inv_zoom);
+            near_j = (int)floor(j * inv_zoom);
+            int start_i = near_i - half_window_height;
+            int end_i = near_i + half_window_height;
+            int start_j = near_j - half_window_width;
+            int end_j = near_j + half_window_width;
+            start_i = start_i < 0 ? 0 : start_i;
+            start_j = start_j < 0 ? 0 : start_j;
+            end_i = end_i >= r ? r - 1 : end_i;
+            end_j = end_j >= c ? c - 1 : end_j;
+            float sum = 0.0f;
+            for (int k = start_i; k <= end_i; k++) {
+                for (int l = start_j; l <= end_j; l++) {
+                    sum += inputImage->data[k * c + l];
+                }
+            }
+            outputImage.data[i * outputImage.width + j] = (unsigned char)(sum / ((end_i - start_i + 1) * (end_j - start_j + 1)));
         }
     }
 
