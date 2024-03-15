@@ -12,9 +12,11 @@ typedef enum {
  * Algo de Zooms
 */
 Image zoomHermite(Image image, float zoomFactor, int centerX, int centerY);
+Image zoomOutHermite(Image image, float zoomFactor, int centerX, int centerY);
 Image zoomNearestNeighbor(Image image, float zoomFactor, int centerX, int centerY);
+Image zoomOutNearestNeighbor(Image image, float zoomFactor, int centerX, int centerY);
 Image zoomBilinear(Image image, float zoomFactor, int centerX, int centerY);
-
+Image zoomOutBilinear(Image image, float zoomFactor, int centerX, int centerY);
 
 
 /**

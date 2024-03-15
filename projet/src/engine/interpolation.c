@@ -84,6 +84,12 @@ Image zoomHermite(Image image, float zoomFactor, int centerX, int centerY) {
 
     return newImage;
 }
+Image zoomOutHermite(Image image, float zoomFactor, int centerX, int centerY) {
+    // Inverser le facteur de zoom pour le dézoom
+    float zoomFactorInverse = 1.0f / zoomFactor;
+    // Appeler la fonction de zoom Hermite avec le facteur de zoom inversé
+    return zoomHermite(image, zoomFactorInverse, centerX, centerY);
+}
 
 /**
  * La fonction zoomNearestNeighbor redimensionne une image à l'aide de l'algorithme du voisin le plus
@@ -102,6 +108,7 @@ Image zoomHermite(Image image, float zoomFactor, int centerX, int centerY) {
  */
 
 Image zoomNearestNeighbor(Image image, float zoomFactor, int centerX, int centerY) {
+
     printf("\nPlus proche voisin");
     int newWidth = image.width;
     int newHeight = image.height;
@@ -127,6 +134,14 @@ Image zoomNearestNeighbor(Image image, float zoomFactor, int centerX, int center
 
     return newImage;
 }
+Image zoomOutNearestNeighbor(Image image, float zoomFactor, int centerX, int centerY) {
+    // Inverser le facteur de zoom pour le dézoom
+    float zoomFactorInverse = 1.0f / zoomFactor;
+    // Appeler la fonction de zoom du voisin le plus proche avec le facteur de zoom inversé
+    return zoomNearestNeighbor(image, zoomFactorInverse, centerX, centerY);
+}
+
+
 
 
 /**
@@ -183,4 +198,10 @@ Image zoomBilinear(Image image, float zoomFactor, int centerX, int centerY) {
     }
 
     return newImage;
+}
+Image zoomOutBilinear(Image image, float zoomFactor, int centerX, int centerY) {
+    // Inverser le facteur de zoom pour le dézoom
+    float zoomFactorInverse = 1.0f / zoomFactor;
+    // Appeler la fonction de zoom bilinéaire avec le facteur de zoom inversé
+    return zoomBilinear(image, zoomFactorInverse, centerX, centerY);
 }
