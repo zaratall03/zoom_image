@@ -3,18 +3,14 @@
 
 #include <gtk/gtk.h>
 
-#include "interpolation.h"
 #include "image.h"
 
-typedef struct {
-    ZoomType zoomType; // Type de zoom à effectuer
-    gpointer data; // Autres données à passer si nécessaire
-} MouseCallbackData;
-
-void on_file_selection(GtkFileChooserButton *filechooserbutton, gpointer data);
-gboolean on_mouse_button_press(GtkWidget *widget, GdkEventButton *event, gpointer userData);
-void on_combobox_changed(GtkComboBox *combobox, gpointer user_data);
-
+void open_file(GtkMenuItem *menu_item, gpointer user_data);
+gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image);
+void on_zoom_in_clicked(GtkButton *button, gpointer user_data); 
+void on_zoom_out_clicked(GtkButton *button, gpointer user_data); 
+void update_button_state(GtkButton *button, gboolean is_clicked);
 GdkPixbuf* convertImageToPixbuf(Image image);
+Image convertPixbufToImage(GdkPixbuf *pixbuf); 
 
 #endif /* CALL_BACK_H */

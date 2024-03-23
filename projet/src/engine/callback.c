@@ -1,3 +1,4 @@
+#include  <gtk/gtk.h>
 #include "callback.h"
 #include "interpolation.h"
 
@@ -7,98 +8,109 @@
 #define MAX_CHANNELS 4
 #define DEFAULT_ZOOM_FACTOR 2
 
-extern Image imageSrc;
-extern GtkWidget *image;
-extern Image zoomedImage;
-extern MouseCallbackData *callbackData;
+extern gboolean zoomInClicked;
+extern gboolean zoomOutClicked;
 
-/**
- * La fonction onFileSelection gère la sélection d'un fichier image, charge l'image sélectionnée et la
- * configure pour qu'elle soit affichée dans un widget d'image GTK.
- * 
- * @param fileChooserButton Le widget GtkFileChooserButton permettant de choisir un fichier via une
- *                          boîte de dialogue.
- * @param data              Un pointeur vers des données supplémentaires pouvant être utilisées par la
- *                          fonction de rappel.
- */
-void on_file_selection(GtkFileChooserButton *filechooserbutton, gpointer data) {
-    const gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(filechooserbutton));
-    char *filename_char = g_strdup(filename);
-    imageSrc = loadImage(filename_char);
-    gtk_image_set_from_file(GTK_IMAGE(image), filename);
-    g_free(filename_char);
-}
 
-/**
- * La fonction onMouseButtonPress gère les événements de pression sur le bouton de la souris pour zoomer
- * sur une image affichée dans un widget GtkImage en utilisant l'interpolation bilinéaire.
- * 
- * @param widget Le GtkWidget où l'événement s'est produit.
- * @param event Un GdkEventButton contenant des informations sur l'événement de pression sur le bouton de
- *              la souris.
- * @param userData Un pointeur vers des données utilisateur pouvant être transmises lors de la connexion du
- *                 gestionnaire de signal au widget.
- * 
- * @return La fonction renvoie FALSE.
- */
-gboolean on_mouse_button_press(GtkWidget *widget, GdkEventButton *event, gpointer userData) {
-    MouseCallbackData *callbackData = (MouseCallbackData *)userData;
-    ZoomType zoomType = callbackData->zoomType;
 
-    if (event->type == GDK_BUTTON_PRESS && event->button == 1) {
-        gdouble x = event->x;
-        gdouble y = event->y;
+void open_file(GtkMenuItem *menu_item, gpointer user_data) {
+    GtkWidget *dialog;
+    GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
+    gint res;
 
-        GtkAllocation allocation;
-        gtk_widget_get_allocation(image, &allocation);
+    dialog = gtk_file_chooser_dialog_new("Open File", NULL, action, "_Cancel",
+                                         GTK_RESPONSE_CANCEL, "_Open", GTK_RESPONSE_ACCEPT, NULL);
 
-        int image_width = allocation.width;
-        int image_height = allocation.height;
-        double nearest_x, nearest_y;
+    res = gtk_dialog_run(GTK_DIALOG(dialog));
+    if (res == GTK_RESPONSE_ACCEPT) {
+        char *filename;
+        GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+        filename = gtk_file_chooser_get_filename(chooser);
 
-        if (x >= 0 && x < image_width && y >= 0 && y < image_height) {
-            nearest_x = x;
-            nearest_y = y;
-        } else {
-            nearest_x = CLAMP(x, 0, image_width - 1);
-            nearest_y = CLAMP(y, 0, image_height - 1);
-        }
+        GtkWidget *image = GTK_WIDGET(user_data);
+        gtk_image_set_from_file(GTK_IMAGE(image), filename);
 
-        float zoomFactor = DEFAULT_ZOOM_FACTOR; 
-        switch (zoomType) {
-            case BILINEAR:
-                zoomedImage = zoomBilinear(imageSrc, zoomFactor, nearest_x, nearest_y);
-                break;
-            case HERMITE:
-                zoomedImage = zoomHermite(imageSrc, zoomFactor, nearest_x, nearest_y);
-                break;
-            case NEAREST_NEIGHBOR:
-                zoomedImage = zoomNearestNeighbor(imageSrc, zoomFactor, nearest_x, nearest_y);
-                break;
-            default : 
-                printf("Aucun zoom séléctionné !");
-                return FALSE;
-
-        }
-        
-        GdkPixbuf *pixbuf = convertImageToPixbuf(zoomedImage);
-        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
-        freeImage(zoomedImage);
-        g_object_unref(pixbuf); 
+        g_free(filename);
     }
-    return FALSE;
+
+    gtk_widget_destroy(dialog);
+}
+
+void update_button_state(GtkButton *button, gboolean is_clicked) {
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), is_clicked);
+}
+
+void on_zoom_in_clicked(GtkButton *button, gpointer user_data) {
+    if (!zoomInClicked) {
+        zoomInClicked = TRUE;
+        zoomOutClicked = FALSE;
+        update_button_state(GTK_BUTTON(user_data), zoomOutClicked);
+        update_button_state(GTK_BUTTON(button), zoomInClicked);
+    }
+}
+
+void on_zoom_out_clicked(GtkButton *button, gpointer user_data) {
+    if (!zoomOutClicked) {
+        zoomOutClicked = TRUE;
+        zoomInClicked = FALSE;
+        update_button_state(GTK_BUTTON(user_data), zoomInClicked);
+        update_button_state(GTK_BUTTON(button), zoomOutClicked);
+    }
 }
 
 
-/**
- * La fonction convertImageToPixbuf convertit une structure de données Image en GdkPixbuf en copiant
- * les données de pixels et en gérant les différences de canaux.
- * 
- * @param image La structure Image contenant des informations sur une image, telles que sa largeur,
- *              sa hauteur, ses données en pixels et le nombre de canaux de couleur.
- * 
- * @return Un pointeur vers une structure GdkPixbuf représentant une image dans la bibliothèque GTK.
- */
+gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image) {
+    if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1 && (zoomInClicked ||zoomOutClicked )) {
+        double mouseX = event->x;
+        double mouseY = event->y;
+
+        GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
+        if (pixbuf == NULL) {
+            printf("Erreur : Aucun GdkPixbuf associé à l'image.\n");
+            return TRUE;
+        }
+
+        int width = gdk_pixbuf_get_width(pixbuf);
+        int height = gdk_pixbuf_get_height(pixbuf);
+
+        // Vérifier si les coordonnées sont dans le pixbuf
+        if (mouseX < 0 || mouseY < 0 || mouseX >= width || mouseY >= height) {
+            // Approximer en utilisant les coordonnées du pixel le plus proche
+            if (mouseX < 0) mouseX = 0;
+            if (mouseY < 0) mouseY = 0;
+            if (mouseX >= width) mouseX = width - 1;
+            if (mouseY >= height) mouseY = height - 1;
+        }
+
+        // Convertir les coordonnées de la souris en entiers
+        int x = (int) mouseX;
+        int y = (int) mouseY;
+
+        Image originalImage = convertPixbufToImage(pixbuf);
+        if (originalImage.data == NULL) {
+            printf("Erreur lors de la conversion du GdkPixbuf en Image.\n");
+            return TRUE;
+        }
+        Image zoomedImage;
+        float zoomFactor = 1.2;
+        if(zoomInClicked){
+            zoomedImage = zoomNearestNeighbor(originalImage, zoomFactor, x, y);
+        }else{
+            zoomedImage = zoomOutNearestNeighbor(originalImage, zoomFactor, x, y);
+        }
+        g_free(originalImage.data);
+
+        GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(zoomedImage);
+        g_free(zoomedImage.data);
+
+        gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
+        g_object_unref(zoomedPixbuf);
+    }
+    return TRUE;
+}
+
+
+
 GdkPixbuf* convertImageToPixbuf(Image image) {
     GdkPixbuf *pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, image.width, image.height);
     if (pixbuf == NULL) {
@@ -126,15 +138,26 @@ GdkPixbuf* convertImageToPixbuf(Image image) {
 }
 
 
-
-/**
- * La fonction onComboBoxChanged définit la variable zoomType en fonction de l'élément actif dans
- * une GtkComboBox.
- * 
- * @param combobox  Un pointeur vers le widget GtkComboBox qui a déclenché le signal.
- * @param user_data Un pointeur vers des données définies par l'utilisateur qui peuvent être transmises
- *                  à la fonction de rappel.
- */
-void on_combobox_changed(GtkComboBox *combobox, gpointer user_data) {
-    callbackData->zoomType = gtk_combo_box_get_active(combobox);
+Image convertPixbufToImage(GdkPixbuf *pixbuf) {
+    Image image;
+    image.width = gdk_pixbuf_get_width(pixbuf);
+    image.height = gdk_pixbuf_get_height(pixbuf);
+    image.channels = gdk_pixbuf_get_n_channels(pixbuf);
+    image.data = (unsigned char *)g_malloc(image.width * image.height * image.channels * sizeof(unsigned char));
+    if (image.data == NULL) {
+        g_printerr("Erreur lors de l'allocation de la mémoire pour l'image.\n");
+        return image;
+    }
+    int rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+    guchar *buf_pixels = gdk_pixbuf_get_pixels(pixbuf);
+    for (int y = 0; y < image.height; y++) {
+        for (int x = 0; x < image.width; x++) {
+            int image_index = (y * image.width + x) * image.channels;
+            int pixbuf_index = y * rowstride + x * image.channels;
+            for (int c = 0; c < image.channels; c++) {
+                image.data[image_index + c] = buf_pixels[pixbuf_index + c];
+            }
+        }
+    }
+    return image;
 }

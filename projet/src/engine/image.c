@@ -1,6 +1,10 @@
+// image.c
+
 #include <stdlib.h>
-#include "stb_image.h"
 #include "image.h"
+#include "stb_image.h" // Ne pas inclure #define STB_IMAGE_IMPLEMENTATION
+
+// Votre code pour manipuler les images ici
 
 
 #define DEFAULT_QUALITY 95
