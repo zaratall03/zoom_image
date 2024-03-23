@@ -8,20 +8,21 @@ typedef enum {
     NEAREST_NEIGHBOR
 } ZoomType;
 
-/**
- * Algo de Zooms
-*/
-Image zoomHermite(Image image, float zoomFactor, int centerX, int centerY);
-Image zoomOutHermite(Image image, float zoomFactor, int centerX, int centerY);
-Image zoomNearestNeighbor(Image image, float zoomFactor, int centerX, int centerY);
-Image zoomOutNearestNeighbor(Image image, float zoomFactor, int centerX, int centerY);
-Image zoomBilinear(Image image, float zoomFactor, int centerX, int centerY);
-Image zoomOutBilinear(Image image, float zoomFactor, int centerX, int centerY);
+
+Image zoomOutBilinear(Image image, float zoomFactor) ;
+Image zoomBilinear(Image image, float zoomFactor) ;
+
+Image zoomNearestNeighbor(Image image, float zoomFactor) ;
+Image zoomOutNearestNeighbor(Image image, float zoomFactor) ;
+
+Image zoomOutHermite(Image image, float zoomFactor) ;
+Image zoomHermite(Image image, float zoomFactor) ;
 
 
-/**
- * Fonctions supplémentaires
-*/
-float interpolateHermite(float p0, float p1, float p2, float p3, float t);
+
+float hermiteInterpolation(float p0, float m0, float p1, float m1, float t) ;
+float bilinearInterpolation(float p00, float p01, float p10, float p11, float u, float v) ;
+
+
 
 #endif

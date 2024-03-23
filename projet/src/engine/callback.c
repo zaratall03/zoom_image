@@ -8,9 +8,15 @@
 #define MAX_CHANNELS 4
 #define DEFAULT_ZOOM_FACTOR 2
 
+
+#define MAX_ZOOMED_WIDTH 800
+#define MAX_ZOOMED_HEIGHT 800
+
 extern gboolean zoomInClicked;
 extern gboolean zoomOutClicked;
 
+extern GdkPixbuf *pixbufImg;
+extern Image img;
 
 
 void open_file(GtkMenuItem *menu_item, gpointer user_data) {
@@ -29,7 +35,9 @@ void open_file(GtkMenuItem *menu_item, gpointer user_data) {
 
         GtkWidget *image = GTK_WIDGET(user_data);
         gtk_image_set_from_file(GTK_IMAGE(image), filename);
-
+        img = loadImage(filename);
+        pixbufImg = convertImageToPixbuf(img);
+ 
         g_free(filename);
     }
 
@@ -60,51 +68,39 @@ void on_zoom_out_clicked(GtkButton *button, gpointer user_data) {
 
 
 gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image) {
-    if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1 && (zoomInClicked ||zoomOutClicked )) {
-        double mouseX = event->x;
-        double mouseY = event->y;
-
+    if(image == NULL || (!zoomInClicked && !zoomOutClicked)){
+        return TRUE;
+    }
+    if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1) {
         GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
-        if (pixbuf == NULL) {
-            printf("Erreur : Aucun GdkPixbuf associé à l'image.\n");
-            return TRUE;
-        }
 
-        int width = gdk_pixbuf_get_width(pixbuf);
-        int height = gdk_pixbuf_get_height(pixbuf);
+        // Convertir le GdkPixbuf en Image
+        Image img = convertPixbufToImage(pixbuf);
 
-        // Vérifier si les coordonnées sont dans le pixbuf
-        if (mouseX < 0 || mouseY < 0 || mouseX >= width || mouseY >= height) {
-            // Approximer en utilisant les coordonnées du pixel le plus proche
-            if (mouseX < 0) mouseX = 0;
-            if (mouseY < 0) mouseY = 0;
-            if (mouseX >= width) mouseX = width - 1;
-            if (mouseY >= height) mouseY = height - 1;
-        }
 
-        // Convertir les coordonnées de la souris en entiers
-        int x = (int) mouseX;
-        int y = (int) mouseY;
-
-        Image originalImage = convertPixbufToImage(pixbuf);
-        if (originalImage.data == NULL) {
-            printf("Erreur lors de la conversion du GdkPixbuf en Image.\n");
-            return TRUE;
-        }
-        Image zoomedImage;
+        // Appliquer le zoom
         float zoomFactor = 1.2;
         if(zoomInClicked){
-            zoomedImage = zoomNearestNeighbor(originalImage, zoomFactor, x, y);
+            img = zoomNearestNeighbor(img, zoomFactor);
         }else{
-            zoomedImage = zoomOutNearestNeighbor(originalImage, zoomFactor, x, y);
+            img = zoomOutNearestNeighbor(img, zoomFactor);
         }
-        g_free(originalImage.data);
 
-        GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(zoomedImage);
-        g_free(zoomedImage.data);
+        // Convertir l'image zoomée en GdkPixbuf
+        GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(img);
+        if (zoomedPixbuf != NULL) {
+            // Mettre à jour le pixbuf de l'image
+            gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
+            g_object_unref(zoomedPixbuf); // Libérer le pixbuf
+        } else {
+            // Gestion de l'erreur
+            printf("Erreur : Le pixbuf zoomé est NULL.\n");
+        }
 
-        gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
-        g_object_unref(zoomedPixbuf);
+        // Libérer la mémoire de l'image zoomée
+        if (img.data != NULL) {
+            g_free(img.data);
+        }
     }
     return TRUE;
 }
