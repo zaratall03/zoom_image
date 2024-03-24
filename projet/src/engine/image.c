@@ -29,29 +29,24 @@ char* getImagePath(Image image){
     return image.path;
 }
 
-/**
- * La fonction getPixel alloue de la mémoire pour un pixel dans une image et récupère les valeurs de
- * pixel pour les coordonnées spécifiées.
- * 
- * @param image La structure de données d'image contenant des informations sur l'image, telles que sa
- *              largeur, sa hauteur, le nombre de canaux de couleur et les données de pixels.
- * @param x     La coordonnée x du pixel dans l'image.
- * @param y     La coordonnée y du pixel dans l'image.
- * @return      Un pointeur vers un tableau d'entiers représentant les valeurs de pixels aux coordonnées
- *              spécifiées (x, y) dans l'image donnée.
- */
-int* getPixel(Image image, int x, int y) {
-    int* pixel = (int*)malloc(sizeof(int) * MAX_CHANNELS);
+
+unsigned char* getPixel(Image image, int x, int y) {
+    unsigned char * pixel = (unsigned char*)malloc(sizeof(unsigned char ) * image.channels);
     if (pixel == NULL) {
         printf("Erreur lors de l'allocation de mémoire pour le pixel.\n");
         return NULL;
     } 
     for (int channel = 0; channel < image.channels; channel++) {
         int index = (y * image.width + x) * image.channels + channel;
-        int valp = (int)image.data[index];
-        pixel[channel] = abs(valp);
+        pixel[channel] = abs(image.data[index]);
     }
     return pixel;
+}
+
+
+
+void set_pixel(Image *img, int x, int y, int c, unsigned char value) {
+    img->data[(y * img->width + x) * img->channels + c] = value;
 }
 
 /**
@@ -77,11 +72,11 @@ Image loadImage(char* path) {
 }
 
 void affichePixel(Image image, int x, int y){
-    int* pixels = getPixel(image, x, y);
+    unsigned char* pixels = getPixel(image, x, y);
     int channels =  getnbPixelChannels(image);
     printf("[");
     for(int i=0; i<channels; i++){
-        printf(" %d ", *(pixels+i)); 
+        printf(" %c ", *(pixels+i)); 
     }
     printf("]");
 }

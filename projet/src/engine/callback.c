@@ -15,8 +15,6 @@
 extern gboolean zoomInClicked;
 extern gboolean zoomOutClicked;
 
-extern GdkPixbuf *pixbufImg;
-extern Image img;
 
 
 void open_file(GtkMenuItem *menu_item, gpointer user_data) {
@@ -34,10 +32,7 @@ void open_file(GtkMenuItem *menu_item, gpointer user_data) {
         filename = gtk_file_chooser_get_filename(chooser);
 
         GtkWidget *image = GTK_WIDGET(user_data);
-        gtk_image_set_from_file(GTK_IMAGE(image), filename);
-        img = loadImage(filename);
-        pixbufImg = convertImageToPixbuf(img);
- 
+        gtk_image_set_from_file(GTK_IMAGE(image), filename); 
         g_free(filename);
     }
 
@@ -73,31 +68,25 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
     }
     if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1) {
         GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
-
-        // Convertir le GdkPixbuf en Image
         Image img = convertPixbufToImage(pixbuf);
-
-
-        // Appliquer le zoom
         float zoomFactor = 1.2;
-        if(zoomInClicked){
-            img = zoomNearestNeighbor(img, zoomFactor);
-        }else{
-            img = zoomOutNearestNeighbor(img, zoomFactor);
-        }
+        // if(zoomInClicked){
+        //     img = zoomHermite(img, zoomFactor);
+        // }else{
+        //     img = zoomOutHermite(img, zoomFactor);
+        // }
+        // GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(img);
+        // if (zoomedPixbuf != NULL) {
+        //     gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
+        //     g_object_unref(zoomedPixbuf); 
+        // } else {
+        //     printf("Erreur : Le pixbuf zoomé est NULL.\n");
+        // }
+        printf("")
 
-        // Convertir l'image zoomée en GdkPixbuf
-        GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(img);
-        if (zoomedPixbuf != NULL) {
-            // Mettre à jour le pixbuf de l'image
-            gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
-            g_object_unref(zoomedPixbuf); // Libérer le pixbuf
-        } else {
-            // Gestion de l'erreur
-            printf("Erreur : Le pixbuf zoomé est NULL.\n");
-        }
 
-        // Libérer la mémoire de l'image zoomée
+
+
         if (img.data != NULL) {
             g_free(img.data);
         }

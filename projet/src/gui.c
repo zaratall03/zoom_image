@@ -16,11 +16,12 @@ gboolean zoomOutClicked = FALSE;
 GdkPixbuf *pixbufImg;
 Image img;
 
-ZoomType TYPE_ALGO;
-void on_type_algo_changed(GtkComboBox *combo_box, gpointer user_data);
-void init_type_algo_combo(GtkComboBox *combo_box);
+ZoomType TYPE_ALGO; 
+ResultTab resultTab;
+
 
 int main(int argc, char *argv[]) {
+    initializeResultTab();
     gtk_init(&argc, &argv);
     srand(time(NULL));
 
@@ -31,7 +32,7 @@ int main(int argc, char *argv[]) {
     GtkWidget *zoomInButton;
     GtkWidget *zoomOutButton;
     GtkWidget *openOption;
-    GtkComboBox *typeAlgoCombo;
+    GtkWidget *typeAlgoEntry;
     Image originalImg;
 
     builder = gtk_builder_new();
@@ -43,10 +44,10 @@ int main(int argc, char *argv[]) {
     zoomInButton = GTK_WIDGET(gtk_builder_get_object(builder, "zoomIn"));
     zoomOutButton = GTK_WIDGET(gtk_builder_get_object(builder, "ZoomOut"));
     openOption = GTK_WIDGET(gtk_builder_get_object(builder, "OpenOption"));
-    typeAlgoCombo = GTK_COMBO_BOX(gtk_builder_get_object(builder, "TypeAlgo"));
-
+    // typeAlgoEntry = GTK_WIDGET(gtk_builder_get_object(builder, "TypeAlgo"));
+    
+    
     initMainWindow(window);
-    init_type_algo_combo(typeAlgoCombo);
 
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(openOption, "activate", G_CALLBACK(open_file), image);
@@ -61,27 +62,18 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void on_type_algo_changed(GtkComboBox *combo_box, gpointer user_data) {
-    GtkTreeIter iter;
-    if (gtk_combo_box_get_active_iter(combo_box, &iter)) {
-        gchar *item = NULL;
-        gtk_tree_model_get(gtk_combo_box_get_model(combo_box), &iter, 0, &item, -1);
-        if (g_strcmp0(item, "BILINEAR") == 0) {
-            TYPE_ALGO = BILINEAR;
-        } else if (g_strcmp0(item, "HERMITE") == 0) {
-            TYPE_ALGO = HERMITE;
-        } else if (g_strcmp0(item, "NEAREST NEIGHBOR") == 0) {
-            TYPE_ALGO = NEAREST_NEIGHBOR;
-        }
-        g_free(item);
+
+
+ResultTab initializeResultTab() {
+    resultTab.nbAlgo = NB_TYPE;
+
+    // Initialiser chaque résultat avec des valeurs par défaut
+    for (int i = 0; i < NB_TYPE; ++i) {
+        resultTab.results[i].start = 0;
+        resultTab.results[i].end = 0;
+        resultTab.results[i].zoomType =  (ZoomType)i;       
     }
+
+    return resultTab;
 }
 
-
-void init_type_algo_combo(GtkComboBox *combo_box) {
-    combo_box = GTK_COMBO_BOX(gtk_combo_box_text_new());
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "BILINEAR");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "HERMITE");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_box), "NEAREST NEIGHBOR");
-    g_signal_connect(combo_box, "changed", G_CALLBACK(on_type_algo_changed), NULL);
-}

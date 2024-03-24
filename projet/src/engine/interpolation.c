@@ -7,72 +7,68 @@
 
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 
+// Fonction d'interpolation d'Hermite
 
-float hermiteInterpolation(float p0, float m0, float p1, float m1, float t) {
-    float t2 = t * t;
-    float t3 = t2 * t;
-    float a = 2.0 * t3 - 3.0 * t2 + 1.0;
-    float b = t3 - 2.0 * t2 + t;
-    float c = -2.0 * t3 + 3.0 * t2;
-    float d = t3 - t2;
-    return a * p0 + b * m0 + c * p1 + d * m1;
+extern Result globalResults[3];
+
+float hermiteInterpolation(float p00, float p01, float p10, float p11, float t) {
+    float c0 = p00;
+    float c1 = p01;
+    float c2 = -3 * p00 + 3 * p01 - 2 * p10 - p11;
+    float c3 = 2 * p00 - 2 * p01 + p10 + p11;
+
+    return c0 + c1 * t + c2 * t * t + c3 * t * t * t;
 }
 
+// Fonction pour zoomer une image avec interpolation d'Hermite
 Image zoomHermite(Image image, float zoomFactor) {
-    // Calcul des dimensions de la nouvelle image après zoom
-    int newWidth = image.width * zoomFactor;
-    int newHeight = image.height * zoomFactor;
+    int newWidth = (int)(image.width * zoomFactor);
+    int newHeight = (int)(image.height * zoomFactor);
 
-    // Allocation de mémoire pour la nouvelle image
-    Image newImage;
-    newImage.width = newWidth;
-    newImage.height = newHeight;
-    newImage.channels = image.channels;
-    newImage.data = (unsigned char *)malloc(newWidth * newHeight * image.channels);
-    newImage.path = NULL;
+    Image outputImage;
+    outputImage.width = newWidth;
+    outputImage.height = newHeight;
+    outputImage.channels = image.channels;
+    outputImage.data = (unsigned char *)malloc(newWidth * newHeight * image.channels * sizeof(unsigned char));
+    outputImage.path = NULL; // Le chemin n'est pas utilisé pour l'image zoomée
 
-    // Parcours de chaque pixel de la nouvelle image
-    for (int y = 0; y < newHeight; y++) {
-        for (int x = 0; x < newWidth; x++) {
-            // Calcul des coordonnées dans l'image d'entrée correspondant à ce pixel de la nouvelle image
-            float srcX = (float)x / zoomFactor;
-            float srcY = (float)y / zoomFactor;
-
-            // Récupération des indices des pixels environnants dans l'image d'entrée
-            int srcX0 = (int)(srcX);
-            int srcX1 = srcX0 + 1;
-            int srcY0 = (int)(srcY);
-            int srcY1 = srcY0 + 1;
-
-            // Calcul des valeurs de u et v pour l'interpolation Hermite
-            float u = srcX - srcX0;
-            float v = srcY - srcY0;
-
-            // Parcours de chaque canal de couleur
-            for (int c = 0; c < image.channels; c++) {
-                // Récupération des valeurs de pixel environnants dans l'image d'entrée
-                float p00 = image.data[(srcY0 * image.width + srcX0) * image.channels + c];
-                float p01 = image.data[(srcY1 * image.width + srcX0) * image.channels + c];
-                float p10 = image.data[(srcY0 * image.width + srcX1) * image.channels + c];
-                float p11 = image.data[(srcY1 * image.width + srcX1) * image.channels + c];
-
-                // Interpolation Hermite pour obtenir la valeur de pixel résultante
-                float interpolated = hermiteInterpolation(p00, p01, p10, p11, v);
-
-                // Attribution de la valeur de pixel résultante à la nouvelle image
-                newImage.data[(y * newWidth + x) * image.channels + c] = (unsigned char)interpolated;
-            }
-        }
+    if (outputImage.data == NULL) {
+        fprintf(stderr, "Erreur d'allocation de mémoire\n");
+        exit(EXIT_FAILURE);
     }
 
-    // Retour de la nouvelle image zoomée
-    return newImage;
+    int i, j;
+    float x, y;
+
+    for (i = 0; i < newHeight; i++) {
+        for (j = 0; j < newWidth; j++) {
+            x = (float)j / zoomFactor;
+            y = (float)i / zoomFactor;
+
+            int near_i = (int)y;
+            int near_j = (int)x;
+
+            near_i = near_i < 0 ? 0 : (near_i >= image.height - 1 ? image.height - 2 : near_i);
+            near_j = near_j < 0 ? 0 : (near_j >= image.width - 1 ? image.width - 2 : near_j);
+
+            float dx = x - near_j;
+            float dy = y - near_i;
+
+            for (int c = 0; c < image.channels; c++) {
+                float p00 = image.data[(near_i * image.width + near_j) * image.channels + c];
+                float p01 = image.data[(near_i * image.width + near_j + 1) * image.channels + c];
+                float p10 = image.data[((near_i + 1) * image.width + near_j) * image.channels + c];
+                float p11 = image.data[((near_i + 1) * image.width + near_j + 1) * image.channels + c];
+
+                float interpolated = hermiteInterpolation(p00, p01, p10, p11, dx);
+
+                outputImage.data[(i * newWidth + j) * image.channels + c] = (unsigned char)interpolated;
+            }
+        }
+    
+    }
+    return outputImage;
 }
-
-
-
-
-
 
 
 
@@ -90,11 +86,10 @@ Image zoomNearestNeighbor(Image image, float zoomFactor) {
     newImage.height = newHeight;
     newImage.channels = image.channels;
     newImage.data = (unsigned char *)malloc(newWidth * newHeight * image.channels);
-    newImage.path = NULL;
+    newImage.path = image.path;
 
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
-            // Calcul des coordonnées correspondantes dans l'image originale
             int srcX = (int)(x / zoomFactor);
             int srcY = (int)(y / zoomFactor);
 
@@ -114,6 +109,7 @@ float bilinearInterpolation(float p00, float p01, float p10, float p11, float u,
     return (1 - u) * (1 - v) * p00 + u * (1 - v) * p10 + (1 - u) * v * p01 + u * v * p11;
 }
 Image zoomBilinear(Image image, float zoomFactor) {
+
     int newWidth = (int)(image.width * zoomFactor);
     int newHeight = (int)(image.height * zoomFactor);
 
@@ -173,19 +169,13 @@ Image zoomBilinear(Image image, float zoomFactor) {
 
 // Fonction de zoom arrière bilinéaire
 Image zoomOutBilinear(Image image, float zoomFactor) {
-        // Inverser le facteur de zoom pour le dézoom
     float zoomFactorInverse = 1.0f / zoomFactor;
-    // Appeler la fonction de zoom Hermite avec le facteur de zoom inversé
     return zoomBilinear(image, zoomFactorInverse);
 }
 
 
 
 Image zoomOutHermite(Image image, float zoomFactor) {
-        // Inverser le facteur de zoom pour le dézoom
     float zoomFactorInverse = 1.0f / zoomFactor;
-    // Appeler la fonction de zoom Hermite avec le facteur de zoom inversé
     return zoomHermite(image, zoomFactorInverse);
 }
-
-

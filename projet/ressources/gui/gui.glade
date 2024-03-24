@@ -141,14 +141,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBox" id="combobox1">
-                        <property name="visible">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">2</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
                       <object class="GtkSpinButton" id="spinbutton1">
@@ -369,5 +362,22 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkListStore" id="liststore1">
+    <columns>
+      <!-- column-name type -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">PPV</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">Bilin&#xE9;aire</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">Hermite</col>
+      </row>
+    </data>
   </object>
 </interface>
