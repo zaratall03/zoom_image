@@ -1,10 +1,7 @@
-// image.c
 
 #include <stdlib.h>
 #include "image.h"
-#include "stb_image.h" // Ne pas inclure #define STB_IMAGE_IMPLEMENTATION
-
-// Votre code pour manipuler les images ici
+#include "stb_image.h"  
 
 
 #define DEFAULT_QUALITY 95
@@ -89,11 +86,9 @@ Image freeImage(Image image){
 
 
 Image extractSubmatrix(Image image, int startX, int startY, int endX, int endY) {
-    // Calcul des dimensions de la sous-matrice
     int subWidth = endX - startX;
     int subHeight = endY - startY;
 
-    // Allocation de mémoire pour la sous-matrice extraite
     Image subImage;
     subImage.width = subWidth;
     subImage.height = subHeight;
@@ -101,10 +96,8 @@ Image extractSubmatrix(Image image, int startX, int startY, int endX, int endY) 
     subImage.data = (unsigned char *)malloc(subWidth * subHeight * image.channels);
     subImage.path = NULL;
 
-    // Parcours de chaque pixel de la sous-matrice
     for (int y = startY; y < endY; y++) {
         for (int x = startX; x < endX; x++) {
-            // Copie des valeurs de pixel correspondantes depuis l'image d'entrée vers la sous-matrice
             for (int c = 0; c < image.channels; c++) {
                 subImage.data[((y - startY) * subWidth + (x - startX)) * image.channels + c] = 
                     image.data[(y * image.width + x) * image.channels + c];

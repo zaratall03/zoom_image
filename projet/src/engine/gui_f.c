@@ -15,3 +15,17 @@ void initMainWindow(GtkWidget *window) {
 }
 
 
+ResultTab initializeResultTab() {
+    resultTab.nbAlgo = NB_TYPE;
+    printf("%d", resultTab.nbAlgo);
+    for (int i = 0; i < NB_TYPE; ++i) {
+        resultTab.results[i].start.tv_sec = 0;
+        resultTab.results[i].start.tv_nsec = 0;
+        resultTab.results[i].end.tv_sec = 0;
+        resultTab.results[i].end.tv_nsec = 0;
+        resultTab.results[i].zoomType = (ZoomType)i;
+    }
+    return resultTab;
+}
+
+

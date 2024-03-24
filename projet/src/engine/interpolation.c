@@ -8,7 +8,6 @@
 
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 
-// Fonction d'interpolation d'Hermite
 
 extern ZoomType TYPE_ALGO; 
 extern ResultTab resultTab;
@@ -24,7 +23,6 @@ float hermiteInterpolation(float p00, float p01, float p10, float p11, float t) 
     return c0 + c1 * t + c2 * t * t + c3 * t * t * t;
 }
 
-// Fonction pour zoomer une image avec interpolation d'Hermite
 Image zoomHermite(Image image, float zoomFactor) {
     int newWidth = (int)(image.width * zoomFactor);
     int newHeight = (int)(image.height * zoomFactor);
@@ -34,8 +32,7 @@ Image zoomHermite(Image image, float zoomFactor) {
     outputImage.height = newHeight;
     outputImage.channels = image.channels;
     outputImage.data = (unsigned char *)malloc(newWidth * newHeight * image.channels * sizeof(unsigned char));
-    outputImage.path = NULL; // Le chemin n'est pas utilisé pour l'image zoomée
-
+    outputImage.path = NULL; 
     if (outputImage.data == NULL) {
         fprintf(stderr, "Erreur d'allocation de mémoire\n");
         exit(EXIT_FAILURE);
@@ -97,7 +94,6 @@ Image zoomNearestNeighbor(Image image, float zoomFactor) {
             int srcX = (int)(x / zoomFactor);
             int srcY = (int)(y / zoomFactor);
 
-            // Copie de la valeur de pixel correspondante dans la nouvelle image
             for (int c = 0; c < image.channels; c++) {
                 newImage.data[(y * newWidth + x) * image.channels + c] = 
                     image.data[(srcY * image.width + srcX) * image.channels + c];
@@ -125,35 +121,28 @@ Image zoomBilinear(Image image, float zoomFactor) {
     newImage.path = NULL;
 
     if (newImage.data == NULL) {
-        // Gestion de l'échec de l'allocation mémoire
         fprintf(stderr, "Erreur : Échec de l'allocation de mémoire pour la nouvelle image.\n");
         exit(EXIT_FAILURE);
     }
 
-    // Parcours de chaque pixel de la nouvelle image
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
-            // Calcul des coordonnées correspondantes dans l'image originale
             float srcX = x / zoomFactor;
             float srcY = y / zoomFactor;
 
-            // Récupération des coordonnées des pixels environnants dans l'image d'origine
             int srcX0 = (int)floor(srcX);
             int srcX1 = (int)ceil(srcX);
             int srcY0 = (int)floor(srcY);
             int srcY1 = (int)ceil(srcY);
 
-            // Assurez-vous que les indices restent dans les limites de l'image d'origine
             srcX0 = CLAMP(srcX0, 0, image.width - 1);
             srcX1 = CLAMP(srcX1, 0, image.width - 1);
             srcY0 = CLAMP(srcY0, 0, image.height - 1);
             srcY1 = CLAMP(srcY1, 0, image.height - 1);
 
-            // Calcul des poids de l'interpolation bilinéaire
             float u = srcX - srcX0;
             float v = srcY - srcY0;
 
-            // Interpolation bilinéaire pour chaque canal de couleur
             for (int c = 0; c < image.channels; c++) {
                 float p00 = image.data[(srcY0 * image.width + srcX0) * image.channels + c];
                 float p01 = image.data[(srcY1 * image.width + srcX0) * image.channels + c];
@@ -171,7 +160,6 @@ Image zoomBilinear(Image image, float zoomFactor) {
 
 
 
-// Fonction de zoom arrière bilinéaire
 Image zoomOutBilinear(Image image, float zoomFactor) {
     float zoomFactorInverse = 1.0f / zoomFactor;
     return zoomBilinear(image, zoomFactorInverse);
@@ -205,44 +193,13 @@ void afficheResultTab(ResultTab resultTab) {
 }
 
 
-void test1() {
-    // Enregistrer le temps de début
-    pthread_mutex_lock(&lock);
-    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST1].start);
-    pthread_mutex_unlock(&lock);
-    
-    // Faire dormir la fonction pendant un certain temps (par exemple 2 secondes)
-    sleep(2);
-    printf("Fini1");
-
-    pthread_mutex_lock(&lock);
-    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST1].end);
-    pthread_mutex_unlock(&lock);
-
-}
-
-
-void test2() {
-    // Enregistrer le temps de début
-    pthread_mutex_lock(&lock);
-    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST2].start);
-    pthread_mutex_unlock(&lock);
-    // Faire dormir la fonction pendant un certain temps (par exemple 3 secondes)
-    sleep(3);
-    printf("Fini2");
-    // Enregistrer le temps de fin
-    pthread_mutex_lock(&lock);
-    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST2].end);
-    pthread_mutex_unlock(&lock);
-
-}
 
 
 double calculateElapsedTime(struct timespec start, struct timespec end) {
-// Fonction pour calculer le temps écoulé en secondes entre start et end
-    double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); // Calcul du nombre de secondes écoulées
-    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0; // Conversion des nanosecondes en secondes
+    double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); 
+    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0; 
     double res = elapsedSeconds + elapsedNanoseconds;
     printf("\n Temps mis par l'algo : %f", res );
-    return res; // Temps total écoulé en secondes
+    return res;
 }
+

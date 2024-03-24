@@ -36,12 +36,11 @@ int main(int argc, char *argv[]) {
     gtk_builder_add_from_file(builder, GLADE_FILE, NULL);
 
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window1"));
-    imageEventBox = GTK_WIDGET(gtk_builder_get_object(builder, "eventbox1"));  // Récupérer la GtkEventBox
+    imageEventBox = GTK_WIDGET(gtk_builder_get_object(builder, "eventbox1"));
     image = GTK_WIDGET(gtk_builder_get_object(builder, "image1"));
     zoomInButton = GTK_WIDGET(gtk_builder_get_object(builder, "zoomIn"));
     zoomOutButton = GTK_WIDGET(gtk_builder_get_object(builder, "ZoomOut"));
     openOption = GTK_WIDGET(gtk_builder_get_object(builder, "OpenOption"));
-    // typeAlgoEntry = GTK_WIDGET(gtk_builder_get_object(builder, "TypeAlgo"));
     
     
     initMainWindow(window);
@@ -61,21 +60,5 @@ int main(int argc, char *argv[]) {
 
 
 
-ResultTab initializeResultTab() {
-    resultTab.nbAlgo = NB_TYPE;
-    printf("%d", resultTab.nbAlgo);
-
-    // Initialiser chaque résultat avec des valeurs par défaut
-    for (int i = 0; i < NB_TYPE; ++i) {
-        resultTab.results[i].start.tv_sec = 0;
-        resultTab.results[i].start.tv_nsec = 0;
-        resultTab.results[i].end.tv_sec = 0;
-        resultTab.results[i].end.tv_nsec = 0;
-        resultTab.results[i].zoomType = (ZoomType)i;
-        // Vous pouvez également initialiser d'autres champs de la structure Result ici
-    }
-
-    return resultTab;
-}
 
 

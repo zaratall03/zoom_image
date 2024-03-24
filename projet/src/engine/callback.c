@@ -2,7 +2,6 @@
 #include <pthread.h>
 
 #include "callback.h"
-#include "interpolation.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -17,7 +16,20 @@
 extern gboolean zoomInClicked;
 extern gboolean zoomOutClicked;
 extern ResultTab resultTab;
+extern pthread_mutex_t lock;
 
+
+Zoom zoomInList[NB_TYPE] = {
+    zoomBilinear,
+    zoomNearestNeighbor,
+    zoomHermite
+};
+
+Zoom zoomOutList[NB_TYPE] = {
+    zoomOutBilinear,
+    zoomOutNearestNeighbor,
+    zoomOutHermite
+};
 
 void open_file(GtkMenuItem *menu_item, gpointer user_data) {
     GtkWidget *dialog;
@@ -32,12 +44,18 @@ void open_file(GtkMenuItem *menu_item, gpointer user_data) {
         char *filename;
         GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
         filename = gtk_file_chooser_get_filename(chooser);
-
+        Image img = loadImage(filename);
+        pthread_mutex_lock(&lock);
+        for(int type = 0 ; type < resultTab.nbAlgo; type++){
+            resultTab.results[type].resultImage = img;
+        }
+        pthread_mutex_unlock(&lock);
         GtkWidget *image = GTK_WIDGET(user_data);
         gtk_image_set_from_file(GTK_IMAGE(image), filename); 
         g_free(filename);
     }
-
+    
+afficheResultTab(resultTab); 
     gtk_widget_destroy(dialog);
 }
 
@@ -62,49 +80,6 @@ void on_zoom_out_clicked(GtkButton *button, gpointer user_data) {
         update_button_state(GTK_BUTTON(button), zoomOutClicked);
     }
 }
-
-
-gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image) {
-    if(image == NULL || (!zoomInClicked && !zoomOutClicked)){
-        return TRUE;
-    }
-    if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1) {
-        GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
-        Image img = convertPixbufToImage(pixbuf);
-        float zoomFactor = 1.2;
-         if(zoomInClicked){
-            img = zoomNearestNeighbor(img, zoomFactor);
-        }else{
-            img = zoomOutNearestNeighbor(img, zoomFactor);
-        }
-        GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(img);
-        if (zoomedPixbuf != NULL) {
-            // Mettre à jour le pixbuf de l'image
-            gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
-            g_object_unref(zoomedPixbuf); // Libérer le pixbuf
-        } else {
-            // Gestion de l'erreur
-            printf("Erreur : Le pixbuf zoomé est NULL.\n");
-        }
-        
-        pthread_t thread1, thread2;
-        pthread_create(&thread1, NULL, (void *(*)(void *)) test1, NULL);
-        pthread_create(&thread2, NULL, (void *(*)(void *)) test2, NULL);
-
-        // Attendre la fin des threads
-        pthread_join(thread1, NULL);
-        pthread_join(thread2, NULL);
-        afficheResultTab(resultTab);
-        
-
-        if (img.data != NULL) {
-            g_free(img.data);
-        }
-    }
-    return TRUE;
-}
-
-
 
 GdkPixbuf* convertImageToPixbuf(Image image) {
     GdkPixbuf *pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, image.width, image.height);
@@ -155,4 +130,93 @@ Image convertPixbufToImage(GdkPixbuf *pixbuf) {
         }
     }
     return image;
+}
+
+
+
+
+void timed_zoom(ZoomType type, float zoomFactor, Zoom zoom){
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[type].start);
+    pthread_mutex_unlock(&lock);
+    Image img = resultTab.results[type].resultImage; 
+    resultTab.results[type].resultImage = zoom(img, zoomFactor); 
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[type].end);
+    pthread_mutex_unlock(&lock);
+}
+
+
+
+
+gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image) {
+    if (image == NULL || (!zoomInClicked && !zoomOutClicked)) {
+        return TRUE;
+    }
+
+    if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1) {
+        GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
+        Image img = convertPixbufToImage(pixbuf);
+        float zoomFactor = 1.2;
+        ZoomType type = BILINEAR;
+        
+        pthread_t threads[NB_TYPE];
+        for (int zoom = 0; zoom < resultTab.nbAlgo; zoom++) {
+            ThreadArgs *args = malloc(sizeof(ThreadArgs));
+            if (args == NULL) {
+                fprintf(stderr, "Erreur lors de l'allocation de mémoire pour les arguments du thread.\n");
+                exit(EXIT_FAILURE);
+            }
+            args->type = (ZoomType)zoom;
+            args->zoomFactor = zoomFactor;
+            args->zoomFunc = zoomInClicked ? zoomInList[zoom] : zoomOutList[zoom];
+            args->resultImage = &(resultTab.results[zoom].resultImage);
+            if (pthread_create(&threads[zoom], NULL, timed_zoom_thread, args) != 0) {
+                fprintf(stderr, "Erreur lors de la création du thread pour le zoom %d\n", zoom);
+            }
+        }
+
+        for (int zoom = 0; zoom < resultTab.nbAlgo; zoom++) {
+            if (pthread_join(threads[zoom], NULL) != 0) {
+                fprintf(stderr, "Erreur lors de l'attente du thread pour le zoom %d\n", zoom);
+            }
+        }
+        
+        GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(resultTab.results[type].resultImage);
+        if (zoomedPixbuf != NULL) {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
+            g_object_unref(zoomedPixbuf);
+        } else {
+            printf("Erreur : Le pixbuf zoomé est NULL.\n");
+        }
+        afficheResultTab(resultTab);
+
+        if (img.data != NULL) {
+            g_free(img.data);
+        }
+    }
+
+    return TRUE;
+}
+
+
+
+void *timed_zoom_thread(void *args) {
+    ThreadArgs *threadArgs = (ThreadArgs *)args;
+    ZoomType type = threadArgs->type;
+    float zoomFactor = threadArgs->zoomFactor;
+    Zoom zoomFunc = threadArgs->zoomFunc;
+    Image *resultImage = threadArgs->resultImage;
+
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[type].start);
+    pthread_mutex_unlock(&lock);
+    Image img = *resultImage;
+    *resultImage = zoomFunc(img, zoomFactor);
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[type].end);
+    pthread_mutex_unlock(&lock);
+
+    free(args);
+    pthread_exit(NULL);
 }
