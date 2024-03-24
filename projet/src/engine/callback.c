@@ -1,4 +1,6 @@
 #include  <gtk/gtk.h>
+#include <pthread.h>
+
 #include "callback.h"
 #include "interpolation.h"
 
@@ -14,7 +16,7 @@
 
 extern gboolean zoomInClicked;
 extern gboolean zoomOutClicked;
-
+extern ResultTab resultTab;
 
 
 void open_file(GtkMenuItem *menu_item, gpointer user_data) {
@@ -70,22 +72,30 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
         GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
         Image img = convertPixbufToImage(pixbuf);
         float zoomFactor = 1.2;
-        // if(zoomInClicked){
-        //     img = zoomHermite(img, zoomFactor);
-        // }else{
-        //     img = zoomOutHermite(img, zoomFactor);
-        // }
-        // GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(img);
-        // if (zoomedPixbuf != NULL) {
-        //     gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
-        //     g_object_unref(zoomedPixbuf); 
-        // } else {
-        //     printf("Erreur : Le pixbuf zoomé est NULL.\n");
-        // }
-        printf("")
+         if(zoomInClicked){
+            img = zoomNearestNeighbor(img, zoomFactor);
+        }else{
+            img = zoomOutNearestNeighbor(img, zoomFactor);
+        }
+        GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(img);
+        if (zoomedPixbuf != NULL) {
+            // Mettre à jour le pixbuf de l'image
+            gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
+            g_object_unref(zoomedPixbuf); // Libérer le pixbuf
+        } else {
+            // Gestion de l'erreur
+            printf("Erreur : Le pixbuf zoomé est NULL.\n");
+        }
+        
+        pthread_t thread1, thread2;
+        pthread_create(&thread1, NULL, (void *(*)(void *)) test1, NULL);
+        pthread_create(&thread2, NULL, (void *(*)(void *)) test2, NULL);
 
-
-
+        // Attendre la fin des threads
+        pthread_join(thread1, NULL);
+        pthread_join(thread2, NULL);
+        afficheResultTab(resultTab);
+        
 
         if (img.data != NULL) {
             g_free(img.data);

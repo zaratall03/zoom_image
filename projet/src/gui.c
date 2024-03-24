@@ -7,17 +7,14 @@
 #include "image.h"
 #include "callback.h"
 #include "gui_f.h"
-
 #define GLADE_FILE "ressources/gui/gui.glade"
 
 gboolean zoomInClicked = FALSE;
 gboolean zoomOutClicked = FALSE;
 
-GdkPixbuf *pixbufImg;
-Image img;
-
 ZoomType TYPE_ALGO; 
 ResultTab resultTab;
+pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
 
 
 int main(int argc, char *argv[]) {
@@ -66,14 +63,19 @@ int main(int argc, char *argv[]) {
 
 ResultTab initializeResultTab() {
     resultTab.nbAlgo = NB_TYPE;
+    printf("%d", resultTab.nbAlgo);
 
     // Initialiser chaque résultat avec des valeurs par défaut
     for (int i = 0; i < NB_TYPE; ++i) {
-        resultTab.results[i].start = 0;
-        resultTab.results[i].end = 0;
-        resultTab.results[i].zoomType =  (ZoomType)i;       
+        resultTab.results[i].start.tv_sec = 0;
+        resultTab.results[i].start.tv_nsec = 0;
+        resultTab.results[i].end.tv_sec = 0;
+        resultTab.results[i].end.tv_nsec = 0;
+        resultTab.results[i].zoomType = (ZoomType)i;
+        // Vous pouvez également initialiser d'autres champs de la structure Result ici
     }
 
     return resultTab;
 }
+
 

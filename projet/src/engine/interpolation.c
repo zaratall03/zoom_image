@@ -1,15 +1,19 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <unistd.h> 
 #include "interpolation.h"
 #include "image.h"
+#include <pthread.h>
 
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 
 // Fonction d'interpolation d'Hermite
 
-extern Result globalResults[3];
+extern ZoomType TYPE_ALGO; 
+extern ResultTab resultTab;
+extern pthread_mutex_t lock;
+
 
 float hermiteInterpolation(float p00, float p01, float p10, float p11, float t) {
     float c0 = p00;
@@ -178,4 +182,67 @@ Image zoomOutBilinear(Image image, float zoomFactor) {
 Image zoomOutHermite(Image image, float zoomFactor) {
     float zoomFactorInverse = 1.0f / zoomFactor;
     return zoomHermite(image, zoomFactorInverse);
+}
+
+
+
+
+void afficheResult(Result res) {
+    printf("ZoomType: %d\n", res.zoomType);
+    printf("Start Time: %ld.%ld\n", res.start.tv_sec, res.start.tv_nsec);
+    printf("End Time: %ld.%ld\n", res.end.tv_sec, res.end.tv_nsec);
+    calculateElapsedTime(res.start, res.end);
+    printf("\n");
+}
+
+void afficheResultTab(ResultTab resultTab) {
+    printf("Nombre d'algorithmes: %d\n", resultTab.nbAlgo);
+    printf("Résultats:\n");
+    for (int i = 0; i < resultTab.nbAlgo; ++i) {
+        printf("Résultat %d:\n", i);
+        afficheResult(resultTab.results[i]);
+    }
+}
+
+
+void test1() {
+    // Enregistrer le temps de début
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST1].start);
+    pthread_mutex_unlock(&lock);
+    
+    // Faire dormir la fonction pendant un certain temps (par exemple 2 secondes)
+    sleep(2);
+    printf("Fini1");
+
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST1].end);
+    pthread_mutex_unlock(&lock);
+
+}
+
+
+void test2() {
+    // Enregistrer le temps de début
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST2].start);
+    pthread_mutex_unlock(&lock);
+    // Faire dormir la fonction pendant un certain temps (par exemple 3 secondes)
+    sleep(3);
+    printf("Fini2");
+    // Enregistrer le temps de fin
+    pthread_mutex_lock(&lock);
+    clock_gettime(CLOCK_MONOTONIC, &resultTab.results[RES_TEST2].end);
+    pthread_mutex_unlock(&lock);
+
+}
+
+
+double calculateElapsedTime(struct timespec start, struct timespec end) {
+// Fonction pour calculer le temps écoulé en secondes entre start et end
+    double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); // Calcul du nombre de secondes écoulées
+    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0; // Conversion des nanosecondes en secondes
+    double res = elapsedSeconds + elapsedNanoseconds;
+    printf("\n Temps mis par l'algo : %f", res );
+    return res; // Temps total écoulé en secondes
 }

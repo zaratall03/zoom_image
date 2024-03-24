@@ -3,30 +3,27 @@
 #include "image.h"
 #include <time.h>
 
-#define NB_TYPE 3
-
-#define RES_NEIGHBOR 1
-#define RES_BILINEAR 1
-#define RES_HERMITE 3
+#define NB_TYPE 5
 
 typedef enum {
     BILINEAR = 0,
     HERMITE = 1,
-    NEAREST_NEIGHBOR = 2
+    NEAREST_NEIGHBOR = 2, 
+    RES_TEST1 = 3, 
+    RES_TEST2 = 4
 } ZoomType;
 
 
-typedef struct Result{
-    clock_t start, end;
+typedef struct Result {
+    struct timespec start, end; 
     Image resultImage;
     ZoomType zoomType;
-}Result;
+} Result;
 
 typedef struct ResultTab {
     int nbAlgo;
     Result results[NB_TYPE];
 } ResultTab;
-
 
 
 extern ResultTab resultTab;
@@ -47,7 +44,15 @@ Image zoomHermite(Image image, float zoomFactor) ;
 float hermiteInterpolation(float p00, float p01, float p10, float p11, float t);
 float bilinearInterpolation(float p00, float p01, float p10, float p11, float u, float v);
 
-void afficheResultTab();
+
+void test1();
+void test2();
 void afficheResult(Result  res);
+void afficheResultTab(ResultTab resultTab);
+
+double calculateElapsedTime(struct timespec start, struct timespec end);
+
+
+
     
 #endif
