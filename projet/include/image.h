@@ -28,6 +28,7 @@ Image loadImage(char* path);
 Image freeImage(Image image);
 void affichePixel(Image image, int x, int y);
 Image extractSubmatrix(Image image, int startX, int startY, int endX, int endY);
+void free_image(Image *img);
 // int writeImagePng(Image image);
 // int writeImageJpg(Image image, int quality);
 

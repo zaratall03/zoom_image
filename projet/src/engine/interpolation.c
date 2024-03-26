@@ -9,13 +9,12 @@
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 
 
-extern ZoomType TYPE_ALGO; 
 extern ResultTab resultTab;
 extern pthread_mutex_t lock;
 
 
 float hermiteInterpolation(float p00, float p01, float p10, float p11, float t) {
-    float c0 = p00;
+        float c0 = p00;
     float c1 = p01;
     float c2 = -3 * p00 + 3 * p01 - 2 * p10 - p11;
     float c3 = 2 * p00 - 2 * p01 + p10 + p11;
@@ -77,7 +76,6 @@ Image zoomOutNearestNeighbor(Image image, float zoomFactor) {
     float zoomFactorInverse = 1.0f / zoomFactor;
     return zoomNearestNeighbor(image, zoomFactorInverse);
 }
-
 Image zoomNearestNeighbor(Image image, float zoomFactor) {
     int newWidth = image.width * zoomFactor;
     int newHeight = image.height * zoomFactor;
@@ -100,9 +98,9 @@ Image zoomNearestNeighbor(Image image, float zoomFactor) {
             }
         }
     }
-
     return newImage;
 }
+
 
 
 float bilinearInterpolation(float p00, float p01, float p10, float p11, float u, float v) {
@@ -154,7 +152,6 @@ Image zoomBilinear(Image image, float zoomFactor) {
             }
         }
     }
-
     return newImage;
 }
 
@@ -179,17 +176,20 @@ void afficheResult(Result res) {
     printf("ZoomType: %d\n", res.zoomType);
     printf("Start Time: %ld.%ld\n", res.start.tv_sec, res.start.tv_nsec);
     printf("End Time: %ld.%ld\n", res.end.tv_sec, res.end.tv_nsec);
+    printf("Dimension image : %dx%d", res.resultImage.width, res.resultImage.height);
     calculateElapsedTime(res.start, res.end);
     printf("\n");
 }
 
-void afficheResultTab(ResultTab resultTab) {
-    printf("Nombre d'algorithmes: %d\n", resultTab.nbAlgo);
+void afficheResultTab(ResultTab res) {
+    pthread_mutex_lock(&lock);
+    printf("Nombre d'algorithmes: %d\n", res.nbAlgo);
     printf("Résultats:\n");
-    for (int i = 0; i < resultTab.nbAlgo; ++i) {
+    for (int i = 0; i < res.nbAlgo; ++i) {
         printf("Résultat %d:\n", i);
-        afficheResult(resultTab.results[i]);
+        afficheResult(res.results[i]);
     }
+    pthread_mutex_unlock(&lock);
 }
 
 
@@ -197,9 +197,110 @@ void afficheResultTab(ResultTab resultTab) {
 
 double calculateElapsedTime(struct timespec start, struct timespec end) {
     double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); 
-    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0; 
+    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0; // Conversion en secondes
     double res = elapsedSeconds + elapsedNanoseconds;
-    printf("\n Temps mis par l'algo : %f", res );
+    printf("\n Temps mis par l'algo : %f secondes", res );
     return res;
 }
 
+struct timespec getStartFromResult(ZoomType type) {
+    pthread_mutex_lock(&lock);
+    struct timespec start;
+    switch(type) {
+        case BILINEAR:
+            start = resultTab.results[BILINEAR].start;
+            break;
+        case HERMITE:
+            start = resultTab.results[HERMITE].start;
+            break;
+        case NEAREST_NEIGHBOR:
+            start = resultTab.results[NEAREST_NEIGHBOR].start;
+            break;
+    }
+    pthread_mutex_unlock(&lock);
+    return start;
+}
+
+struct timespec getEndFromResult(ZoomType type) {
+    pthread_mutex_lock(&lock);
+    struct timespec end;
+    switch(type) {
+        case BILINEAR:
+            end = resultTab.results[BILINEAR].end;
+            break;
+        case HERMITE:
+            end = resultTab.results[HERMITE].end;
+            break;
+        case NEAREST_NEIGHBOR:
+            end = resultTab.results[NEAREST_NEIGHBOR].end;
+            break;
+    }
+    pthread_mutex_unlock(&lock);
+    return end;
+}
+
+Image getImageFromResult(ZoomType type) {
+    pthread_mutex_lock(&lock);
+    Image img;
+    switch(type) {
+        case BILINEAR:
+            img = resultTab.results[BILINEAR].resultImage;
+            break;
+        case HERMITE:
+            img = resultTab.results[HERMITE].resultImage;
+            break;
+        case NEAREST_NEIGHBOR:
+            img = resultTab.results[NEAREST_NEIGHBOR].resultImage;
+            break;
+    }
+    pthread_mutex_unlock(&lock);
+    return img; 
+}
+
+void setStartFromResult(ZoomType type, struct timespec res) {
+    pthread_mutex_lock(&lock);
+    switch(type) {
+        case BILINEAR:
+            resultTab.results[BILINEAR].start = res;
+            break;
+        case HERMITE:
+            resultTab.results[HERMITE].start = res;
+            break;
+        case NEAREST_NEIGHBOR:
+            resultTab.results[NEAREST_NEIGHBOR].start = res;
+            break;
+    }
+    pthread_mutex_unlock(&lock);
+}
+
+void setEndFromResult(ZoomType type, struct timespec res) {
+    pthread_mutex_lock(&lock);
+    switch(type) {
+        case BILINEAR:
+            resultTab.results[BILINEAR].end = res;
+            break;
+        case HERMITE:
+            resultTab.results[HERMITE].end = res;
+            break;
+        case NEAREST_NEIGHBOR:
+            resultTab.results[NEAREST_NEIGHBOR].end = res;
+            break;
+    }
+    pthread_mutex_unlock(&lock);
+}
+
+void setImageFromResult(ZoomType type, Image res) {
+    pthread_mutex_lock(&lock);
+    switch(type) {
+        case BILINEAR:
+            resultTab.results[BILINEAR].resultImage = res;
+            break;
+        case HERMITE:
+            resultTab.results[HERMITE].resultImage = res;
+            break;
+        case NEAREST_NEIGHBOR:
+            resultTab.results[NEAREST_NEIGHBOR].resultImage = res;
+            break;
+    }
+    pthread_mutex_unlock(&lock);
+}

@@ -11,11 +11,13 @@
 
 gboolean zoomInClicked = FALSE;
 gboolean zoomOutClicked = FALSE;
+ 
+AppWidgets resLabel;
 
-ZoomType TYPE_ALGO; 
 ResultTab resultTab;
 pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
 
+ZoomType displayedZoomType = NEAREST_NEIGHBOR;
 
 int main(int argc, char *argv[]) {
     initializeResultTab();
@@ -31,6 +33,7 @@ int main(int argc, char *argv[]) {
     GtkWidget *openOption;
     GtkWidget *typeAlgoEntry;
     Image originalImg;
+    AppWidgets *widgets;
 
     builder = gtk_builder_new();
     gtk_builder_add_from_file(builder, GLADE_FILE, NULL);
@@ -41,7 +44,10 @@ int main(int argc, char *argv[]) {
     zoomInButton = GTK_WIDGET(gtk_builder_get_object(builder, "zoomIn"));
     zoomOutButton = GTK_WIDGET(gtk_builder_get_object(builder, "ZoomOut"));
     openOption = GTK_WIDGET(gtk_builder_get_object(builder, "OpenOption"));
-    
+    // widgets->label_algo1 = GTK_WIDGET(gtk_builder_get_object(builder, "res1"));
+    // widgets->label_algo2 = GTK_WIDGET(gtk_builder_get_object(builder, "res2"));
+    // widgets->label_algo3 = GTK_WIDGET(gtk_builder_get_object(builder, "res3"));
+
     
     initMainWindow(window);
 

@@ -46,15 +46,6 @@ void set_pixel(Image *img, int x, int y, int c, unsigned char value) {
     img->data[(y * img->width + x) * img->channels + c] = value;
 }
 
-/**
- * La fonction loadImage charge une image à partir d'un chemin spécifié et renvoie une structure
- * Image contenant les données d'image, la largeur, la hauteur, les canaux et le chemin.
- * 
- * @param path Le chemin du fichier représentant l'image à charger.
- * @return     Une structure Image contenant les informations sur l'image chargée, telles que sa
- *             largeur, sa hauteur, le nombre de canaux, les données d'image et le chemin d'accès
- *             au fichier image.
- */
 Image loadImage(char* path) {
     char *image_path = path;
     int width, height, channels;
@@ -106,4 +97,15 @@ Image extractSubmatrix(Image image, int startX, int startY, int endX, int endY) 
     }
 
     return subImage;
+}
+
+void free_image(Image *image) {
+    if (image != NULL) {
+        if (image->data != NULL) {
+            free(image->data);
+        }
+        if (image->path != NULL){
+            free(image->path);
+        }
+    }
 }

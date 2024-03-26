@@ -5,6 +5,7 @@
 
 #include "image.h"
 #include "interpolation.h"
+#include "gui_f.h"
 
 
 
@@ -26,7 +27,6 @@ GdkPixbuf* convertImageToPixbuf(Image image);
 Image convertPixbufToImage(GdkPixbuf *pixbuf); 
 
 
-void timed_zoom(ZoomType type, float zoomFactor, Zoom zoom);
 void *timed_zoom_thread(void *args); 
 
 

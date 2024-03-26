@@ -1,6 +1,10 @@
-#include "callback.h"
 #include "gui_f.h"
+#include "interpolation.h"
 #include <gtk/gtk.h>
+
+extern ResultTab resultTab;
+extern pthread_mutex_t lock;
+
 
 
 void initMainWindow(GtkWidget *window) {
@@ -15,17 +19,28 @@ void initMainWindow(GtkWidget *window) {
 }
 
 
-ResultTab initializeResultTab() {
+void initializeResultTab() {
+    pthread_mutex_lock(&lock);
     resultTab.nbAlgo = NB_TYPE;
     printf("%d", resultTab.nbAlgo);
-    for (int i = 0; i < NB_TYPE; ++i) {
-        resultTab.results[i].start.tv_sec = 0;
-        resultTab.results[i].start.tv_nsec = 0;
-        resultTab.results[i].end.tv_sec = 0;
-        resultTab.results[i].end.tv_nsec = 0;
-        resultTab.results[i].zoomType = (ZoomType)i;
+    for (ZoomType zoom = BILINEAR; zoom <= NEAREST_NEIGHBOR; zoom++){
+        resultTab.results[zoom].start.tv_sec = 0;
+        resultTab.results[zoom].start.tv_nsec = 0;
+        resultTab.results[zoom].end.tv_sec = 0;
+        resultTab.results[zoom].end.tv_nsec = 0;
+        resultTab.results[zoom].zoomType = zoom;
     }
-    return resultTab;
+    pthread_mutex_unlock(&lock);
 }
 
+void update_labels(int res1, int res2, int res3, AppWidgets *widgets) {
+    char buffer[20]; 
+    sprintf(buffer, "%d", res1);
+    gtk_label_set_text(GTK_LABEL(widgets->label_algo1), buffer);
 
+    sprintf(buffer, "%d", res2);
+    gtk_label_set_text(GTK_LABEL(widgets->label_algo2), buffer);
+
+    sprintf(buffer, "%d", res3);
+    gtk_label_set_text(GTK_LABEL(widgets->label_algo3), buffer);
+}
