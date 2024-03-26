@@ -16,9 +16,11 @@
 extern gboolean zoomInClicked;
 extern gboolean zoomOutClicked;
 extern ResultTab resultTab;
-extern AppWidgets resLabel;
 extern ZoomType displayedZoomType;
 extern short uploaded; 
+extern GtkWidget *histogramDrawingArea;
+
+extern GtkWidget * labels[NB_TYPE];
 
 Zoom zoomInList[NB_TYPE] = {
     zoomNearestNeighbor,
@@ -56,6 +58,11 @@ void open_file(GtkMenuItem *menu_item, gpointer user_data) {
         }
         GtkWidget *image = GTK_WIDGET(user_data);
         gtk_image_set_from_file(GTK_IMAGE(image), filename); 
+        
+        // // Calcul de l'histogramme
+        // HistogramData histogramData =  calculateHistogram(img); // Remplacez computeHistogram par la fonction de calcul de votre histogramme
+        // updateHistogram(&histogramData);
+        // gtk_widget_queue_draw(GTK_WIDGET(histogramDrawingArea));
         g_free(filename);
     }
     gtk_widget_destroy(dialog);
@@ -181,47 +188,34 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
         }
         double res[NB_TYPE];
         struct timespec start, end;
-
+        char text[100];
         for(int t = 0; t< NB_TYPE; t++){
             start = getStartFromResult(t); 
             end = getEndFromResult(t);
             res[t] = calculateElapsedTime(start, end);
-            printf("res[%d]=%f", t, res[t]); 
+            g_snprintf(text, sizeof(text), "res[%d]=%.2f", t, res[t]);
         }
+        update_labels(res);
         // afficheResultTab(resultTab);
     }
     return TRUE;
 }
 
 void on_combo_box_changed(GtkComboBox *combo_box, gpointer user_data) {
-    // Obtenir le modèle associé à la GtkComboBox
     GtkTreeModel *model = gtk_combo_box_get_model(combo_box);
-    
-    // Obtenir l'index de l'élément sélectionné
-    gint active_index = gtk_combo_box_get_active(combo_box);
-    
-    // Vérifier si l'index est valide
+        gint active_index = gtk_combo_box_get_active(combo_box);
+
     if (active_index >= 0) {
         GtkTreeIter iter;
-        
-        // Obtenir l'itérateur de l'élément sélectionné dans le modèle
-        if (gtk_tree_model_iter_nth_child(model, &iter, NULL, active_index)) {
+            if (gtk_tree_model_iter_nth_child(model, &iter, NULL, active_index)) {
             gint selected_value = 0;
-            // Obtenir la valeur de la colonne "gint1"
             gtk_tree_model_get(model, &iter, 1, &selected_value, -1);
-            
-            // Mettre à jour l'image en fonction de la valeur sélectionnée
             if (uploaded) {
                 Image current = getImageFromResult(selected_value);
                 GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(current);
                 if (zoomedPixbuf != NULL) {
-                    // Obtenez la GtkImage où vous souhaitez afficher l'image
-                    GtkImage *gtkImage = GTK_IMAGE(user_data);
-                    
-                    // Mettez à jour l'image dans la GtkImage
-                    gtk_image_set_from_pixbuf(gtkImage, zoomedPixbuf);
-                    
-                    // Libérez la mémoire allouée pour le pixbuf
+                    GtkImage *gtkImage = GTK_IMAGE(user_data);                    
+                    gtk_image_set_from_pixbuf(gtkImage, zoomedPixbuf);                    
                     g_object_unref(zoomedPixbuf);
                 } else {
                     printf("Erreur : Le pixbuf zoomé est NULL.\n");
@@ -245,7 +239,6 @@ void *timed_zoom_thread(void *args) {
     struct timespec start, end; 
     printf("*******\nON ZOOOOMMMM *******\n"); 
     clock_gettime(CLOCK_MONOTONIC, &start);
-    
     setStartFromResult(type, start);
     *resultImage = zoomFunc(*resultImage, zoomFactor);
     setImageFromResult(type, *resultImage);

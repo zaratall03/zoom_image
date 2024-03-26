@@ -11,20 +11,24 @@
 
 gboolean zoomInClicked = FALSE;
 gboolean zoomOutClicked = FALSE;
- 
-AppWidgets resLabel;
-
 ResultTab resultTab;
+
+
 pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
 
 ZoomType displayedZoomType = BILINEAR;
 short uploaded = 0;
+ResultTab resultTab;
+
+GtkWidget *labels[NB_TYPE];
+GtkBuilder *builder;
+GtkWidget *histogramDrawingArea;
+
 int main(int argc, char *argv[]) {
     initializeResultTab();
     gtk_init(&argc, &argv);
     srand(time(NULL));
 
-    GtkBuilder *builder;
     GtkWidget *window;
     GtkWidget *imageEventBox;
     GtkWidget *image;
@@ -34,8 +38,9 @@ int main(int argc, char *argv[]) {
     GtkWidget *typeAlgoEntry;
     GtkWidget *algoSelector;
 
+
+
     Image originalImg;
-    AppWidgets *widgets;
 
     builder = gtk_builder_new();
     gtk_builder_add_from_file(builder, GLADE_FILE, NULL);
@@ -47,12 +52,7 @@ int main(int argc, char *argv[]) {
     zoomOutButton = GTK_WIDGET(gtk_builder_get_object(builder, "ZoomOut"));
     openOption = GTK_WIDGET(gtk_builder_get_object(builder, "OpenOption"));
     algoSelector = GTK_WIDGET(gtk_builder_get_object(builder, "algoSelector"));
-
-    // widgets->label_algo1 = GTK_WIDGET(gtk_builder_get_object(builder, "res1"));
-    // widgets->label_algo2 = GTK_WIDGET(gtk_builder_get_object(builder, "res2"));
-    // widgets->label_algo3 = GTK_WIDGET(gtk_builder_get_object(builder, "res3"));
-
-    
+    histogramDrawingArea = GTK_WIDGET(gtk_builder_get_object(builder, "histo"));
     initMainWindow(window);
 
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);

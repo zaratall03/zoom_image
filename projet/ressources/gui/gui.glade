@@ -186,55 +186,35 @@
                         <property name="visible">True</property>
                         <property name="layout_style">center</property>
                         <child>
-                          <object class="GtkHButtonBox" id="hbuttonbox2">
+                          <object class="GtkLabel" id="label3">
                             <property name="visible">True</property>
-                            <child>
-                              <object class="GtkCheckButton" id="checkbutton1">
-                                <property name="label" translatable="yes">checkbutton</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">False</property>
-                                <property name="draw_indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="checkbutton2">
-                                <property name="label" translatable="yes">checkbutton</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">False</property>
-                                <property name="draw_indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="checkbutton3">
-                                <property name="label" translatable="yes">checkbutton</property>
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">False</property>
-                                <property name="draw_indicator">True</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">False</property>
-                                <property name="position">2</property>
-                              </packing>
-                            </child>
+                            <property name="label" translatable="yes">Histogramme Associ&#xE9;</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">False</property>
                             <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkDrawingArea" id="histo">
+                            <property name="visible">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label2">
+                            <property name="visible">True</property>
+                            <property name="label" translatable="yes">R&#xE9;sultat des algorithmes</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
@@ -262,7 +242,7 @@
                             <child>
                               <object class="GtkLabel" id="algo1">
                                 <property name="visible">True</property>
-                                <property name="label" translatable="yes">label</property>
+                                <property name="label" translatable="yes">PPV</property>
                               </object>
                               <packing>
                                 <property name="top_attach">1</property>
@@ -270,9 +250,9 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="res1">
+                              <object class="GtkLabel" id="PPVRes">
                                 <property name="visible">True</property>
-                                <property name="label" translatable="yes">label</property>
+                                <property name="label" translatable="yes">0</property>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -284,7 +264,7 @@
                             <child>
                               <object class="GtkLabel" id="algo2">
                                 <property name="visible">True</property>
-                                <property name="label" translatable="yes">label</property>
+                                <property name="label" translatable="yes">Bilin&#xE9;aire</property>
                               </object>
                               <packing>
                                 <property name="top_attach">2</property>
@@ -292,9 +272,10 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="res2">
+                              <object class="GtkLabel" id="BilinearRes">
                                 <property name="visible">True</property>
-                                <property name="label" translatable="yes">label</property>
+                                <property name="xpad">5</property>
+                                <property name="label" translatable="yes">0</property>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -306,7 +287,7 @@
                             <child>
                               <object class="GtkLabel" id="algo3">
                                 <property name="visible">True</property>
-                                <property name="label" translatable="yes">label</property>
+                                <property name="label" translatable="yes">Hermite</property>
                               </object>
                               <packing>
                                 <property name="top_attach">3</property>
@@ -314,9 +295,9 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="res3">
+                              <object class="GtkLabel" id="HermiteRes">
                                 <property name="visible">True</property>
-                                <property name="label" translatable="yes">label</property>
+                                <property name="label" translatable="yes">0</property>
                               </object>
                               <packing>
                                 <property name="left_attach">1</property>
@@ -329,7 +310,7 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">False</property>
-                            <property name="position">1</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </object>
