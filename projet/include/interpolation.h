@@ -6,13 +6,10 @@
 #define NB_TYPE 3
 
 typedef enum {
-    BILINEAR = 0,
-    HERMITE = 1,
-    NEAREST_NEIGHBOR = 2, 
+    NEAREST_NEIGHBOR = 0, 
+    BILINEAR = 1,
+    HERMITE = 2, 
 } ZoomType;
-
-typedef Image (*Zoom) (Image, float ZoomFactor);
-
 
 typedef struct Result {
     struct timespec start, end; 
@@ -25,6 +22,7 @@ typedef struct ResultTab {
     Result results[NB_TYPE];
 } ResultTab;
 
+typedef Image (*Zoom) (Image, float ZoomFactor);
 
 struct timespec getStartFromResult(ZoomType);
 struct timespec getEndFromResult(ZoomType);

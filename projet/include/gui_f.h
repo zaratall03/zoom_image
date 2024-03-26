@@ -14,5 +14,4 @@ void initMainWindow(GtkWidget *window);
 void initializeResultTab();
 void update_labels(int res1, int res2, int res3, AppWidgets *widgets);
 
-
 #endif

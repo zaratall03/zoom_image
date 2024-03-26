@@ -18,19 +18,19 @@ extern gboolean zoomOutClicked;
 extern ResultTab resultTab;
 extern AppWidgets resLabel;
 extern ZoomType displayedZoomType;
+extern short uploaded; 
 
 Zoom zoomInList[NB_TYPE] = {
+    zoomNearestNeighbor,
     zoomBilinear,
     zoomHermite,
-    zoomNearestNeighbor,
 };
 
 Zoom zoomOutList[NB_TYPE] = {
+    zoomOutNearestNeighbor,
     zoomOutBilinear,
     zoomOutHermite,
-    zoomOutNearestNeighbor,
 };
-
 
 
 void open_file(GtkMenuItem *menu_item, gpointer user_data) {
@@ -40,9 +40,13 @@ void open_file(GtkMenuItem *menu_item, gpointer user_data) {
 
     dialog = gtk_file_chooser_dialog_new("Open File", NULL, action, "_Cancel",
                                          GTK_RESPONSE_CANCEL, "_Open", GTK_RESPONSE_ACCEPT, NULL);
-
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_add_pixbuf_formats(filter); 
+    gtk_file_filter_set_name(filter, "Image Files");
+    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter);
     res = gtk_dialog_run(GTK_DIALOG(dialog));
     if (res == GTK_RESPONSE_ACCEPT) {
+        uploaded = 1;
         char *filename;
         GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
         filename = gtk_file_chooser_get_filename(chooser);
@@ -141,7 +145,7 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
         float zoomFactor = 1.2;
         
         pthread_t threads[NB_TYPE];
-        for (ZoomType zoom = BILINEAR; zoom <= NEAREST_NEIGHBOR; zoom++){
+        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= HERMITE; zoom++){
             ThreadArgs *args = malloc(sizeof(ThreadArgs));
             if (args == NULL) {
                 fprintf(stderr, "Erreur lors de l'allocation de mémoire pour les arguments du thread.\n");
@@ -154,14 +158,19 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
             args->resultImage = &imgRes;
             if (pthread_create(&threads[zoom], NULL, timed_zoom_thread, args) != 0) {
                 fprintf(stderr, "Erreur lors de la création du thread pour le zoom %d\n", zoom);
+            }else{
+                printf("\nC'est oookk");
             }
         }
 
-        for (ZoomType zoom = BILINEAR; zoom <= NEAREST_NEIGHBOR; zoom++){
+        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= HERMITE; zoom++){
             if (pthread_join(threads[zoom], NULL) != 0) {
                 fprintf(stderr, "Erreur lors de l'attente du thread pour le zoom %d\n", zoom);
+            }else{
+                printf("\nC'est oookk");
             }
         }
+        printf("On affiche %d", displayedZoomType);
         imgRes = getImageFromResult(displayedZoomType);
         GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(imgRes);
         if (zoomedPixbuf != NULL) {
@@ -179,11 +188,52 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
             res[t] = calculateElapsedTime(start, end);
             printf("res[%d]=%f", t, res[t]); 
         }
-        afficheResultTab(resultTab);
+        // afficheResultTab(resultTab);
     }
     return TRUE;
 }
 
+void on_combo_box_changed(GtkComboBox *combo_box, gpointer user_data) {
+    // Obtenir le modèle associé à la GtkComboBox
+    GtkTreeModel *model = gtk_combo_box_get_model(combo_box);
+    
+    // Obtenir l'index de l'élément sélectionné
+    gint active_index = gtk_combo_box_get_active(combo_box);
+    
+    // Vérifier si l'index est valide
+    if (active_index >= 0) {
+        GtkTreeIter iter;
+        
+        // Obtenir l'itérateur de l'élément sélectionné dans le modèle
+        if (gtk_tree_model_iter_nth_child(model, &iter, NULL, active_index)) {
+            gint selected_value = 0;
+            // Obtenir la valeur de la colonne "gint1"
+            gtk_tree_model_get(model, &iter, 1, &selected_value, -1);
+            
+            // Mettre à jour l'image en fonction de la valeur sélectionnée
+            if (uploaded) {
+                Image current = getImageFromResult(selected_value);
+                GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(current);
+                if (zoomedPixbuf != NULL) {
+                    // Obtenez la GtkImage où vous souhaitez afficher l'image
+                    GtkImage *gtkImage = GTK_IMAGE(user_data);
+                    
+                    // Mettez à jour l'image dans la GtkImage
+                    gtk_image_set_from_pixbuf(gtkImage, zoomedPixbuf);
+                    
+                    // Libérez la mémoire allouée pour le pixbuf
+                    g_object_unref(zoomedPixbuf);
+                } else {
+                    printf("Erreur : Le pixbuf zoomé est NULL.\n");
+                }
+            }
+        } else {
+            g_print("Erreur lors de l'obtention de l'itérateur pour l'élément sélectionné\n");
+        }
+    } else {
+        g_print("Aucun élément sélectionné dans la combobox\n");
+    }
+}
 
 
 void *timed_zoom_thread(void *args) {
@@ -192,9 +242,10 @@ void *timed_zoom_thread(void *args) {
     float zoomFactor = threadArgs->zoomFactor;
     Zoom zoomFunc = threadArgs->zoomFunc;
     Image *resultImage = threadArgs->resultImage;
-
     struct timespec start, end; 
+    printf("*******\nON ZOOOOMMMM *******\n"); 
     clock_gettime(CLOCK_MONOTONIC, &start);
+    
     setStartFromResult(type, start);
     *resultImage = zoomFunc(*resultImage, zoomFactor);
     setImageFromResult(type, *resultImage);

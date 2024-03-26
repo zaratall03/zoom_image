@@ -4,6 +4,7 @@
 
 extern ResultTab resultTab;
 extern pthread_mutex_t lock;
+extern ZoomType displayedZoomType;
 
 
 
@@ -44,3 +45,12 @@ void update_labels(int res1, int res2, int res3, AppWidgets *widgets) {
     sprintf(buffer, "%d", res3);
     gtk_label_set_text(GTK_LABEL(widgets->label_algo3), buffer);
 }
+
+
+
+
+
+
+
+
+
