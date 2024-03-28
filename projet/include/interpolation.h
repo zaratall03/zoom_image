@@ -60,7 +60,7 @@ void setStartFromResult(ZoomType type, struct timespec res);
 void setEndFromResult(ZoomType type, struct timespec res);
 void setImageFromResult(ZoomType type, Image res);
 
-
-
+ZoomType getdisplayedZoomType();
+void setdisplayedZoomType(ZoomType);
 
 #endif

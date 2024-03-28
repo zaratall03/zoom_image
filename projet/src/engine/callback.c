@@ -2,6 +2,7 @@
 #include <pthread.h>
 
 #include "callback.h"
+#include <pthread.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -14,8 +15,8 @@
 extern gboolean zoomInClicked;
 extern gboolean zoomOutClicked;
 extern ResultTab resultTab;
-extern ZoomType displayedZoomType;
 extern short uploaded; 
+extern ZoomType displayedZoomType;
 extern cairo_t *cr;
 
 extern GtkWidget * labels[NB_TYPE];
@@ -88,9 +89,9 @@ void save_file(GtkMenuItem *menu_item, gpointer user_data) {
         char *filename;
         filename = gtk_file_chooser_get_filename(chooser);
 
-        // Appeler la fonction writeImagePng() pour enregistrer l'image
-        Image img =  getImageFromResult(displayedZoomType);
-        writeImagePng(filename, img);
+        ZoomType type = getdisplayedZoomType();
+        Image img =  getImageFromResult(type);
+        writeImageJpg(filename, img);
 
         g_free(filename);
     }
@@ -154,8 +155,8 @@ void on_combo_box_changed(GtkComboBox *combo_box, gpointer user_data) {
         GtkTreeIter iter;
             if (gtk_tree_model_iter_nth_child(model, &iter, NULL, active_index)) {
             gint selected_value = 0;
-            displayedZoomType = selected_value;
             gtk_tree_model_get(model, &iter, 1, &selected_value, -1);
+            setdisplayedZoomType(selected_value);
             if (uploaded) {
                 Image current = getImageFromResult(selected_value);
                 GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(current);
@@ -202,19 +203,114 @@ Image convertPixbufToImage(GdkPixbuf *pixbuf) {
 }
 
 
+// gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image) {
+//     if (image == NULL || (!zoomInClicked && !zoomOutClicked)) {
+//         return TRUE;
+//     }
+
+//     if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1) {
+//         float zoomFactor = DEFAULT_ZOOM_FACTOR;
+//         pthread_t threads[NB_TYPE];
+//         ThreadArgs *threadArgsList[NB_TYPE];
+
+//         // Création des threads pour chaque type de zoom
+//         for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++) {
+//             threadArgsList[zoom] = (ThreadArgs *)malloc(sizeof(ThreadArgs));
+//             if (threadArgsList[zoom] == NULL) {
+//                 printf("Erreur : échec d'allocation de mémoire pour threadArgsList.\n");
+//                 // Libération de la mémoire allouée pour les threads précédemment créés
+//                 for (ZoomType z = NEAREST_NEIGHBOR; z < zoom; z++) {
+//                     free(threadArgsList[z]);
+//                 }
+//                 return TRUE;
+//             }
+//             threadArgsList[zoom]->type = zoom;
+//             threadArgsList[zoom]->zoomFactor = zoomFactor;
+//             threadArgsList[zoom]->zoomFunc = zoomInClicked ? zoomInList[zoom] : zoomOutList[zoom];
+//             Image imgToUpdate = getImageFromResult(zoom);
+//             threadArgsList[zoom]->resultImage = &imgToUpdate;
+//             int ret = pthread_create(&threads[zoom], NULL, timed_zoom_thread, (void *)threadArgsList[zoom]);
+//             if (ret != 0) {
+//                 printf("Erreur : échec de création du thread.\n");
+//                 // Libération de la mémoire allouée pour les threads précédemment créés
+//                 for (ZoomType z = NEAREST_NEIGHBOR; z < zoom; z++) {
+//                     free(threadArgsList[z]);
+//                 }
+//                 free(threadArgsList[zoom]);
+//                 return TRUE;
+//             }
+//         }
+
+//         // Attente de la fin de tous les threads
+//         for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++) {
+//             int ret = pthread_join(threads[zoom], NULL);
+//             if (ret != 0) {
+//                 printf("Erreur : échec de l'attente du thread.\n");
+//                 // Possibilité de libérer la mémoire allouée pour les threads précédemment créés ici
+//                 return TRUE;
+//             }
+//             free(threadArgsList[zoom]);
+//         }
+
+//         // Mise à jour de l'image affichée
+//         ZoomType displayedZ = getdisplayedZoomType();
+//         Image imgRes = getImageFromResult(displayedZ);
+//         GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(imgRes);
+//         if (zoomedPixbuf != NULL) {
+//             gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
+//             g_object_unref(zoomedPixbuf);
+//         } else {
+//             printf("Erreur : Le pixbuf zoomé est NULL.\n");
+//         }
+
+//         double res[NB_TYPE];
+//         for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++) {
+//             struct timespec start = getStartFromResult(zoom);
+//             struct timespec end = getEndFromResult(zoom);
+//             res[zoom] = calculateElapsedTime(start, end);
+//             printf("%f", res[zoom]);
+//             printf("On Modifie %d", zoom);
+//         }
+
+//         // Mise à jour des étiquettes
+//         update_labels(res);
+//     }
+
+//     return TRUE;
+// }
+
 gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image) {
     if (image == NULL || (!zoomInClicked && !zoomOutClicked)) {
         return TRUE;
     }
+    Image imgRes; 
 
     if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1) {
-        float zoomFactor = DEFAULT_ZOOM_FACTOR;
-
-        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++) {
-            timed_zoom(zoom, zoomFactor, zoomInClicked ? zoomInList[zoom] : zoomOutList[zoom]);
+        float zoomFactor = 1.2;
+        
+        pthread_t threads[NB_TYPE];
+        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++){
+            ThreadArgs *args = malloc(sizeof(ThreadArgs));
+            if (args == NULL) {
+                fprintf(stderr, "Erreur lors de l'allocation de mémoire pour les arguments du thread.\n");
+                exit(EXIT_FAILURE);
+            }
+            args->type = zoom;
+            args->zoomFactor = zoomFactor;
+            args->zoomFunc =  zoomInClicked ? zoomInList[zoom] : zoomOutList[zoom]; // Utiliser la liste appropriée
+            imgRes = getImageFromResult(zoom);
+            args->resultImage = &imgRes;
+            if (pthread_create(&threads[zoom], NULL, timed_zoom_thread, args) != 0) {
+                fprintf(stderr, "Erreur lors de la création du thread pour le zoom %d\n", zoom);
+            }
         }
 
-        Image imgRes = getImageFromResult(displayedZoomType);
+        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++){
+            if (pthread_join(threads[zoom], NULL) != 0) {
+                fprintf(stderr, "Erreur lors de l'attente du thread pour le zoom %d\n", zoom);
+            }
+        }
+        imgRes = getImageFromResult(displayedZoomType);
         GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(imgRes);
         if (zoomedPixbuf != NULL) {
             gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
@@ -223,17 +319,15 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
             printf("Erreur : Le pixbuf zoomé est NULL.\n");
         }
         double res[NB_TYPE];
-        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++) {
-            struct timespec start = getStartFromResult(zoom);
-            struct timespec end = getEndFromResult(zoom);
-            res[zoom] = calculateElapsedTime(start, end);
-            printf("%f", res[zoom]);
-            printf("On Modifie %d", zoom);
-        }
+        struct timespec start, end;
 
+        for(int t = 0; t< NB_TYPE; t++){
+            start = getStartFromResult(t); 
+            end = getEndFromResult(t);
+            res[t] = calculateElapsedTime(start, end);
+        }
         update_labels(res);
     }
-
     return TRUE;
 }
 
@@ -244,10 +338,12 @@ void *timed_zoom_thread(void *args) {
     ZoomType type = threadArgs->type;
     float zoomFactor = threadArgs->zoomFactor;
     Zoom zoomFunc = threadArgs->zoomFunc;
-    Image *resultImage = threadArgs->resultImage;
+    Image img = getImageFromResult(type);
+    Image *resultImage = &img;
     struct timespec start, end; 
     clock_gettime(CLOCK_MONOTONIC, &start);
     setStartFromResult(type, start);
+    printf("\nJe finid %d", type);
     *resultImage = zoomFunc(*resultImage, zoomFactor);
     setImageFromResult(type, *resultImage);
     clock_gettime(CLOCK_MONOTONIC, &end);

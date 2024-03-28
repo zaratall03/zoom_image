@@ -12,6 +12,7 @@
 
 extern ResultTab resultTab;
 extern pthread_mutex_t lock;
+extern ZoomType displayedZoomType; 
 
 unsigned char interpolateHermite(const Image *image, float x, float y, int channel) {
     int x0 = (int)x;
@@ -203,7 +204,6 @@ double calculateElapsedTime(struct timespec start, struct timespec end) {
     double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); 
     double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0; // Conversion en secondes
     double res = elapsedSeconds + elapsedNanoseconds;
-    printf("\n Temps mis par l'algo : %f secondes", res );
     return res;
 }
 
@@ -298,4 +298,20 @@ Image zoomBicubic(Image image, float zoomFactor) {
     }
 
     return resizedImage;
+}
+
+
+
+ZoomType getdisplayedZoomType(){
+    pthread_mutex_lock(&lock);
+    ZoomType res = displayedZoomType;
+    pthread_mutex_unlock(&lock);
+    return res;
+}
+
+
+void setdisplayedZoomType(ZoomType newType){
+    pthread_mutex_lock(&lock);
+    displayedZoomType =  newType;
+    pthread_mutex_unlock(&lock);
 }

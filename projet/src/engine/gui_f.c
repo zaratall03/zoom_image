@@ -70,8 +70,9 @@ void update_labels(double* res) {
 void update_displayed_type(){
     char algoBuffer[50]; 
     GtkWidget *displayed_res = GTK_WIDGET(gtk_builder_get_object(builder, "displayedAlgo"));    
-    printf("%s",algo_displayed[displayedZoomType]); 
-    strcpy(algoBuffer, algo_displayed[displayedZoomType]);
+    ZoomType type = getdisplayedZoomType();
+    printf("%s",algo_displayed[type]); 
+    strcpy(algoBuffer, algo_displayed[type]);
     gtk_label_set_text(GTK_LABEL(displayed_res), algoBuffer);
     gtk_widget_queue_draw(displayed_res);
 }
