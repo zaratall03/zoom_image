@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include "image.h"
 #include "stb_image.h"  
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 
 
 #define DEFAULT_QUALITY 95
@@ -107,5 +110,30 @@ void free_image(Image *image) {
         if (image->path != NULL){
             free(image->path);
         }
+    }
+}
+
+
+
+unsigned char getPixelComposante(Image image, int x, int y, int channel) {
+    int index = (y * image.width + x) * image.channels + channel;
+    return image.data[index];
+}
+
+void setPixelComposante(Image *image, int x, int y, int channel, unsigned char value) {
+    if (x < 0 || x >= image->width || y < 0 || y >= image->height || channel < 0 || channel >= image->channels) {
+        fprintf(stderr, "SET Coordonnées de pixel invalides\n");
+        exit(EXIT_FAILURE);
+    }
+    int index = (y * image->width + x) * image->channels + channel;
+    image->data[index] = value;
+}
+
+
+void writeImageJpg(const char* filename, Image image){ 
+    int result = stbi_write_png(filename, image.width, image.height, image.channels, image.data, image.width * image.channels);
+    if (!result) {
+        fprintf(stderr, "Erreur lors de l'écriture de l'image PNG : %s\n", filename);
+        exit(EXIT_FAILURE);
     }
 }

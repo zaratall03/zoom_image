@@ -7,18 +7,16 @@
 #include "stb_image.h"
 
 #define MAX_CHANNELS 4
-#define DEFAULT_ZOOM_FACTOR 2
 
 
-#define MAX_ZOOMED_WIDTH 800
-#define MAX_ZOOMED_HEIGHT 800
+#define DEFAULT_ZOOM_FACTOR 1.05
 
 extern gboolean zoomInClicked;
 extern gboolean zoomOutClicked;
 extern ResultTab resultTab;
 extern ZoomType displayedZoomType;
 extern short uploaded; 
-extern GtkWidget *histogramDrawingArea;
+extern cairo_t *cr;
 
 extern GtkWidget * labels[NB_TYPE];
 
@@ -26,12 +24,14 @@ Zoom zoomInList[NB_TYPE] = {
     zoomNearestNeighbor,
     zoomBilinear,
     zoomHermite,
+    zoomBicubic,
 };
 
 Zoom zoomOutList[NB_TYPE] = {
     zoomOutNearestNeighbor,
     zoomOutBilinear,
     zoomOutHermite,
+    zoomOutBicubic,
 };
 
 
@@ -58,13 +58,43 @@ void open_file(GtkMenuItem *menu_item, gpointer user_data) {
         }
         GtkWidget *image = GTK_WIDGET(user_data);
         gtk_image_set_from_file(GTK_IMAGE(image), filename); 
-        
-        // // Calcul de l'histogramme
-        // HistogramData histogramData =  calculateHistogram(img); // Remplacez computeHistogram par la fonction de calcul de votre histogramme
-        // updateHistogram(&histogramData);
-        // gtk_widget_queue_draw(GTK_WIDGET(histogramDrawingArea));
         g_free(filename);
     }
+    gtk_widget_destroy(dialog);
+}
+
+
+void save_file(GtkMenuItem *menu_item, gpointer user_data) {
+    GtkWidget *dialog;
+    GtkFileChooser *chooser;
+    GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_SAVE;
+    gint res;
+
+    dialog = gtk_file_chooser_dialog_new("Enregistrer l'image",
+                                         GTK_WINDOW(user_data),
+                                         action,
+                                         "_Annuler",
+                                         GTK_RESPONSE_CANCEL,
+                                         "_Enregistrer",
+                                         GTK_RESPONSE_ACCEPT,
+                                         NULL);
+
+    chooser = GTK_FILE_CHOOSER(dialog);
+
+    gtk_file_chooser_set_do_overwrite_confirmation(chooser, TRUE);
+
+    res = gtk_dialog_run(GTK_DIALOG(dialog));
+    if (res == GTK_RESPONSE_ACCEPT) {
+        char *filename;
+        filename = gtk_file_chooser_get_filename(chooser);
+
+        // Appeler la fonction writeImagePng() pour enregistrer l'image
+        Image img =  getImageFromResult(displayedZoomType);
+        writeImagePng(filename, img);
+
+        g_free(filename);
+    }
+
     gtk_widget_destroy(dialog);
 }
 
@@ -116,6 +146,36 @@ GdkPixbuf* convertImageToPixbuf(Image image) {
     return pixbuf;
 }
 
+void on_combo_box_changed(GtkComboBox *combo_box, gpointer user_data) {
+    GtkTreeModel *model = gtk_combo_box_get_model(combo_box);
+        gint active_index = gtk_combo_box_get_active(combo_box);
+
+    if (active_index >= 0) {
+        GtkTreeIter iter;
+            if (gtk_tree_model_iter_nth_child(model, &iter, NULL, active_index)) {
+            gint selected_value = 0;
+            displayedZoomType = selected_value;
+            gtk_tree_model_get(model, &iter, 1, &selected_value, -1);
+            if (uploaded) {
+                Image current = getImageFromResult(selected_value);
+                GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(current);
+                if (zoomedPixbuf != NULL) {
+                    GtkImage *gtkImage = GTK_IMAGE(user_data);                    
+                    gtk_image_set_from_pixbuf(gtkImage, zoomedPixbuf);                    
+                    g_object_unref(zoomedPixbuf);
+                } else {
+                    printf("Erreur : Le pixbuf zoomé est NULL.\n");
+                }
+            }
+            update_displayed_type();
+        } else {
+            g_print("Erreur lors de l'obtention de l'itérateur pour l'élément sélectionné\n");
+        }
+    } else {
+        g_print("Aucun élément sélectionné dans la combobox\n");
+    }
+}
+
 
 Image convertPixbufToImage(GdkPixbuf *pixbuf) {
     Image image;
@@ -146,39 +206,15 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
     if (image == NULL || (!zoomInClicked && !zoomOutClicked)) {
         return TRUE;
     }
-    Image imgRes; 
 
     if (event != NULL && event->type == GDK_BUTTON_RELEASE && event->button == 1) {
-        float zoomFactor = 1.2;
-        
-        pthread_t threads[NB_TYPE];
-        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= HERMITE; zoom++){
-            ThreadArgs *args = malloc(sizeof(ThreadArgs));
-            if (args == NULL) {
-                fprintf(stderr, "Erreur lors de l'allocation de mémoire pour les arguments du thread.\n");
-                exit(EXIT_FAILURE);
-            }
-            args->type = zoom;
-            args->zoomFactor = zoomFactor;
-            args->zoomFunc = zoomInClicked ? zoomInList[zoom] : zoomOutList[zoom];
-            imgRes = getImageFromResult(zoom);
-            args->resultImage = &imgRes;
-            if (pthread_create(&threads[zoom], NULL, timed_zoom_thread, args) != 0) {
-                fprintf(stderr, "Erreur lors de la création du thread pour le zoom %d\n", zoom);
-            }else{
-                printf("\nC'est oookk");
-            }
+        float zoomFactor = DEFAULT_ZOOM_FACTOR;
+
+        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++) {
+            timed_zoom(zoom, zoomFactor, zoomInClicked ? zoomInList[zoom] : zoomOutList[zoom]);
         }
 
-        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= HERMITE; zoom++){
-            if (pthread_join(threads[zoom], NULL) != 0) {
-                fprintf(stderr, "Erreur lors de l'attente du thread pour le zoom %d\n", zoom);
-            }else{
-                printf("\nC'est oookk");
-            }
-        }
-        printf("On affiche %d", displayedZoomType);
-        imgRes = getImageFromResult(displayedZoomType);
+        Image imgRes = getImageFromResult(displayedZoomType);
         GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(imgRes);
         if (zoomedPixbuf != NULL) {
             gtk_image_set_from_pixbuf(GTK_IMAGE(image), zoomedPixbuf);
@@ -187,47 +223,20 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
             printf("Erreur : Le pixbuf zoomé est NULL.\n");
         }
         double res[NB_TYPE];
-        struct timespec start, end;
-        char text[100];
-        for(int t = 0; t< NB_TYPE; t++){
-            start = getStartFromResult(t); 
-            end = getEndFromResult(t);
-            res[t] = calculateElapsedTime(start, end);
-            g_snprintf(text, sizeof(text), "res[%d]=%.2f", t, res[t]);
+        for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++) {
+            struct timespec start = getStartFromResult(zoom);
+            struct timespec end = getEndFromResult(zoom);
+            res[zoom] = calculateElapsedTime(start, end);
+            printf("%f", res[zoom]);
+            printf("On Modifie %d", zoom);
         }
+
         update_labels(res);
-        // afficheResultTab(resultTab);
     }
+
     return TRUE;
 }
 
-void on_combo_box_changed(GtkComboBox *combo_box, gpointer user_data) {
-    GtkTreeModel *model = gtk_combo_box_get_model(combo_box);
-        gint active_index = gtk_combo_box_get_active(combo_box);
-
-    if (active_index >= 0) {
-        GtkTreeIter iter;
-            if (gtk_tree_model_iter_nth_child(model, &iter, NULL, active_index)) {
-            gint selected_value = 0;
-            gtk_tree_model_get(model, &iter, 1, &selected_value, -1);
-            if (uploaded) {
-                Image current = getImageFromResult(selected_value);
-                GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(current);
-                if (zoomedPixbuf != NULL) {
-                    GtkImage *gtkImage = GTK_IMAGE(user_data);                    
-                    gtk_image_set_from_pixbuf(gtkImage, zoomedPixbuf);                    
-                    g_object_unref(zoomedPixbuf);
-                } else {
-                    printf("Erreur : Le pixbuf zoomé est NULL.\n");
-                }
-            }
-        } else {
-            g_print("Erreur lors de l'obtention de l'itérateur pour l'élément sélectionné\n");
-        }
-    } else {
-        g_print("Aucun élément sélectionné dans la combobox\n");
-    }
-}
 
 
 void *timed_zoom_thread(void *args) {
@@ -237,7 +246,6 @@ void *timed_zoom_thread(void *args) {
     Zoom zoomFunc = threadArgs->zoomFunc;
     Image *resultImage = threadArgs->resultImage;
     struct timespec start, end; 
-    printf("*******\nON ZOOOOMMMM *******\n"); 
     clock_gettime(CLOCK_MONOTONIC, &start);
     setStartFromResult(type, start);
     *resultImage = zoomFunc(*resultImage, zoomFactor);
@@ -247,4 +255,18 @@ void *timed_zoom_thread(void *args) {
     free(args);
     pthread_exit(NULL);
 }
+
+
+void timed_zoom(ZoomType type, float zoomFactor, Zoom zoomFunc) {
+    Image img = getImageFromResult(type);
+    struct timespec start, end; 
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    setStartFromResult(type, start);
+    img = zoomFunc(img, zoomFactor);
+    setImageFromResult(type, img);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    setEndFromResult(type, end);
+}
+
+
 

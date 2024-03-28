@@ -8,6 +8,7 @@ typedef struct Image{
     int channels; 
     unsigned char  *data;
     char* path; 
+    
 }Image;
 
 
@@ -29,8 +30,10 @@ Image freeImage(Image image);
 void affichePixel(Image image, int x, int y);
 Image extractSubmatrix(Image image, int startX, int startY, int endX, int endY);
 void free_image(Image *img);
-// int writeImagePng(Image image);
-// int writeImageJpg(Image image, int quality);
+unsigned char getPixelComposante(Image image, int x, int y, int channel);
+void setPixelComposante(Image *image, int x, int y, int channel, unsigned char value);
+
+void writeImageJpg(const char* filename, Image image); 
 
 
 

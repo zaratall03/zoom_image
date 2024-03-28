@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h> 
 #include "interpolation.h"
 #include "image.h"
@@ -12,63 +13,66 @@
 extern ResultTab resultTab;
 extern pthread_mutex_t lock;
 
+unsigned char interpolateHermite(const Image *image, float x, float y, int channel) {
+    int x0 = (int)x;
+    int y0 = (int)y;
+    int x1 = x0 + 1;
+    int y1 = y0 + 1;
 
-float hermiteInterpolation(float p00, float p01, float p10, float p11, float t) {
-        float c0 = p00;
-    float c1 = p01;
-    float c2 = -3 * p00 + 3 * p01 - 2 * p10 - p11;
-    float c3 = 2 * p00 - 2 * p01 + p10 + p11;
+    float tx = x - x0;
+    float ty = y - y0;
 
-    return c0 + c1 * t + c2 * t * t + c3 * t * t * t;
+    int index00 = (y0 * image->width + x0) * image->channels + channel;
+    int index01 = (y0 * image->width + x1) * image->channels + channel;
+    int index10 = (y1 * image->width + x0) * image->channels + channel;
+    int index11 = (y1 * image->width + x1) * image->channels + channel;
+
+    unsigned char v00 = image->data[index00];
+    unsigned char v01 = image->data[index01];
+    unsigned char v10 = image->data[index10];
+    unsigned char v11 = image->data[index11];
+
+    float interpolatedValue = (1 - tx) * (1 - ty) * v00 +
+                              tx * (1 - ty) * v01 +
+                              (1 - tx) * ty * v10 +
+                              tx * ty * v11;
+
+    if (interpolatedValue < 0) {
+        return 0;
+    } else if (interpolatedValue > 255) {
+        return 255;
+    } else {
+        return (unsigned char)interpolatedValue;
+    }
 }
 
-Image zoomHermite(Image image, float zoomFactor) {
-    int newWidth = (int)(image.width * zoomFactor);
-    int newHeight = (int)(image.height * zoomFactor);
+Image zoomHermite(Image image, float zoomFactor){
+    zoomH(&image, zoomFactor);
+}
+Image* zoomH(const Image *image, float zoomFactor) {
+    int newWidth = (int)(image->width * zoomFactor);
+    int newHeight = (int)(image->height * zoomFactor);
 
-    Image outputImage;
-    outputImage.width = newWidth;
-    outputImage.height = newHeight;
-    outputImage.channels = image.channels;
-    outputImage.data = (unsigned char *)malloc(newWidth * newHeight * image.channels * sizeof(unsigned char));
-    outputImage.path = NULL; 
-    if (outputImage.data == NULL) {
-        fprintf(stderr, "Erreur d'allocation de mémoire\n");
-        exit(EXIT_FAILURE);
-    }
+    Image *zoomedImage = (Image*)malloc(sizeof(Image));
+    zoomedImage->width = newWidth;
+    zoomedImage->height = newHeight;
+    zoomedImage->channels = image->channels;
+    zoomedImage->data = (unsigned char*)malloc(newWidth * newHeight * image->channels * sizeof(unsigned char));
 
-    int i, j;
-    float x, y;
-
-    for (i = 0; i < newHeight; i++) {
-        for (j = 0; j < newWidth; j++) {
-            x = (float)j / zoomFactor;
-            y = (float)i / zoomFactor;
-
-            int near_i = (int)y;
-            int near_j = (int)x;
-
-            near_i = near_i < 0 ? 0 : (near_i >= image.height - 1 ? image.height - 2 : near_i);
-            near_j = near_j < 0 ? 0 : (near_j >= image.width - 1 ? image.width - 2 : near_j);
-
-            float dx = x - near_j;
-            float dy = y - near_i;
-
-            for (int c = 0; c < image.channels; c++) {
-                float p00 = image.data[(near_i * image.width + near_j) * image.channels + c];
-                float p01 = image.data[(near_i * image.width + near_j + 1) * image.channels + c];
-                float p10 = image.data[((near_i + 1) * image.width + near_j) * image.channels + c];
-                float p11 = image.data[((near_i + 1) * image.width + near_j + 1) * image.channels + c];
-
-                float interpolated = hermiteInterpolation(p00, p01, p10, p11, dx);
-
-                outputImage.data[(i * newWidth + j) * image.channels + c] = (unsigned char)interpolated;
+    for (int y = 0; y < newHeight; y++) {
+        for (int x = 0; x < newWidth; x++) {
+            float origX = x / zoomFactor;
+            float origY = y / zoomFactor;
+            for (int channel = 0; channel < image->channels; channel++) {
+                zoomedImage->data[(y * newWidth + x) * image->channels + channel] = interpolateHermite(image, origX, origY, channel);
             }
         }
-    
     }
-    return outputImage;
+
+    return zoomedImage;
 }
+
+
 
 
 
@@ -91,7 +95,7 @@ Image zoomNearestNeighbor(Image image, float zoomFactor) {
         for (int x = 0; x < newWidth; x++) {
             int srcX = (int)(x / zoomFactor);
             int srcY = (int)(y / zoomFactor);
-
+ 
             for (int c = 0; c < image.channels; c++) {
                 newImage.data[(y * newWidth + x) * image.channels + c] = 
                     image.data[(srcY * image.width + srcX) * image.channels + c];
@@ -106,6 +110,8 @@ Image zoomNearestNeighbor(Image image, float zoomFactor) {
 float bilinearInterpolation(float p00, float p01, float p10, float p11, float u, float v) {
     return (1 - u) * (1 - v) * p00 + u * (1 - v) * p10 + (1 - u) * v * p01 + u * v * p11;
 }
+
+
 Image zoomBilinear(Image image, float zoomFactor) {
 
     int newWidth = (int)(image.width * zoomFactor);
@@ -203,127 +209,93 @@ double calculateElapsedTime(struct timespec start, struct timespec end) {
 
 struct timespec getStartFromResult(ZoomType type) {
     struct timespec start;
-    switch(type) {
-        case BILINEAR:
-            pthread_mutex_lock(&lock);
-            start = resultTab.results[BILINEAR].start;
-            pthread_mutex_unlock(&lock);
-            break;
-        case HERMITE:
-            pthread_mutex_lock(&lock);
-            start = resultTab.results[HERMITE].start;
-            pthread_mutex_unlock(&lock);
-            break;
-        case NEAREST_NEIGHBOR:
-            pthread_mutex_lock(&lock);
-            start = resultTab.results[NEAREST_NEIGHBOR].start;
-            pthread_mutex_unlock(&lock);
-            break;
-    }
+    pthread_mutex_lock(&lock);
+    start = resultTab.results[type].start;
+    pthread_mutex_unlock(&lock);
     return start;
 }
 
 struct timespec getEndFromResult(ZoomType type) {
     struct timespec end;
-    switch(type) {
-        case BILINEAR:
-            pthread_mutex_lock(&lock);
-            end = resultTab.results[BILINEAR].end;
-            pthread_mutex_unlock(&lock);
-            break;
-        case HERMITE:
-            pthread_mutex_lock(&lock);
-            end = resultTab.results[HERMITE].end;
-            pthread_mutex_unlock(&lock);
-            break;
-        case NEAREST_NEIGHBOR:
-            pthread_mutex_lock(&lock);
-            end = resultTab.results[NEAREST_NEIGHBOR].end;
-            pthread_mutex_unlock(&lock);
-            break;
-    }
+    pthread_mutex_lock(&lock);
+    end = resultTab.results[type].end;
+    pthread_mutex_unlock(&lock);
     return end;
 }
 
 Image getImageFromResult(ZoomType type) {
     Image img;
-    switch(type) {
-        case BILINEAR:
-            pthread_mutex_lock(&lock);
-            img = resultTab.results[BILINEAR].resultImage;
-            pthread_mutex_unlock(&lock);
-            break;
-        case HERMITE:
-            pthread_mutex_lock(&lock);
-            img = resultTab.results[HERMITE].resultImage;
-            pthread_mutex_unlock(&lock);
-            break;
-        case NEAREST_NEIGHBOR:
-            pthread_mutex_lock(&lock);
-            img = resultTab.results[NEAREST_NEIGHBOR].resultImage;
-            pthread_mutex_unlock(&lock);
-            break;
-    }
+    pthread_mutex_lock(&lock);
+    img = resultTab.results[type].resultImage;
+    pthread_mutex_unlock(&lock);
     return img; 
 }
 
 void setStartFromResult(ZoomType type, struct timespec res) {
-    switch(type) {
-        case BILINEAR:
-            pthread_mutex_lock(&lock);
-            resultTab.results[BILINEAR].start = res;
-            pthread_mutex_unlock(&lock);
-            break;
-        case HERMITE:
-            pthread_mutex_lock(&lock);
-            resultTab.results[HERMITE].start = res;
-            pthread_mutex_unlock(&lock);
-            break;
-        case NEAREST_NEIGHBOR:
-            pthread_mutex_lock(&lock);
-            resultTab.results[NEAREST_NEIGHBOR].start = res;
-            pthread_mutex_unlock(&lock);
-            break;
-    }
+    pthread_mutex_lock(&lock);
+    resultTab.results[type].start = res;
     pthread_mutex_unlock(&lock);
 }
 
 void setEndFromResult(ZoomType type, struct timespec res) {
-    switch(type) {
-        case BILINEAR:
-            pthread_mutex_lock(&lock);
-            resultTab.results[BILINEAR].end = res;
-            pthread_mutex_unlock(&lock);
-            break;
-        case HERMITE:
-            pthread_mutex_lock(&lock);
-            resultTab.results[HERMITE].end = res;
-            pthread_mutex_unlock(&lock);
-            break;
-        case NEAREST_NEIGHBOR:
-            pthread_mutex_lock(&lock);
-            resultTab.results[NEAREST_NEIGHBOR].end = res;
-            pthread_mutex_unlock(&lock);
-            break;
-    }
+    pthread_mutex_lock(&lock);
+    resultTab.results[type].end = res;
+    pthread_mutex_unlock(&lock);
 }
 
 void setImageFromResult(ZoomType type, Image res) {
-    switch(type) {
-        case BILINEAR:
-            pthread_mutex_lock(&lock);
-            resultTab.results[BILINEAR].resultImage = res;
-            pthread_mutex_unlock(&lock);
-            break;
-        case HERMITE:
-            pthread_mutex_lock(&lock);
-            resultTab.results[HERMITE].resultImage = res;
-            pthread_mutex_unlock(&lock);
-            break;
-        case NEAREST_NEIGHBOR:
-            pthread_mutex_lock(&lock);
-            resultTab.results[NEAREST_NEIGHBOR].resultImage = res;
-            pthread_mutex_unlock(&lock);
-            break;
+    pthread_mutex_lock(&lock);
+    resultTab.results[type].resultImage = res;
+    pthread_mutex_unlock(&lock);
+}
+
+
+
+Image zoomOutBicubic(Image image, float zoomFactor) {
+    float zoomFactorInverse = 1.0f / zoomFactor;
+    return zoomBicubic(image, zoomFactorInverse);
+}
+
+
+unsigned char cubicInterpolate(unsigned char p[4], unsigned char x) {
+    return p[1] + 0.5 * x * (p[2] - p[0] + x * (2.0 * p[0] - 5.0 * p[1] + 4.0 * p[2] - p[3] + x * (3.0 * (p[1] - p[2]) + p[3] - p[0])));
+}
+
+
+Image zoomBicubic(Image image, float zoomFactor) {
+    int newWidth = (int)(image.width * zoomFactor);
+    int newHeight = (int)(image.height * zoomFactor);
+
+    Image resizedImage;
+    resizedImage.width = newWidth;
+    resizedImage.height = newHeight;
+    resizedImage.channels = image.channels;
+    resizedImage.data = (unsigned char *)malloc(newWidth * newHeight * resizedImage.channels * sizeof(unsigned char));
+
+    float x_ratio = (float)(image.width - 1) / newWidth;
+    float y_ratio = (float)(image.height - 1) / newHeight;
+
+    for (int y = 0; y < newHeight; ++y) {
+        for (int x = 0; x < newWidth; ++x) {
+            float x_l = floor(x * x_ratio);
+            float y_l = floor(y * y_ratio);
+            float x_h = x_l + 1;
+            float y_h = y_l + 1;
+
+            float x_frac = x * x_ratio - x_l;
+            float y_frac = y * y_ratio - y_l;
+
+            unsigned char p[4];
+            for (int c = 0; c < image.channels; ++c) {
+                p[0] = getPixelComposante(image, (int)x_l, (int)y_l, c);
+                p[1] = getPixelComposante(image, (int)x_h, (int)y_l, c);
+                p[2] = getPixelComposante(image, (int)x_h, (int)y_h, c);
+                p[3] = getPixelComposante(image, (int)x_l, (int)y_h, c);
+
+                resizedImage.data[(y * newWidth + x) * resizedImage.channels + c] = cubicInterpolate(p, x_frac);
+            }
+        }
     }
+
+    return resizedImage;
 }

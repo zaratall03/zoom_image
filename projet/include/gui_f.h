@@ -5,17 +5,9 @@
 
 
 
-
-
-typedef struct {
-    int histogram[256];
-} HistogramData;
-
-
 void initMainWindow(GtkWidget *window);
 void initializeResultTab();
 void update_labels(double* res);
-HistogramData calculateHistogram(Image image); 
-gboolean drawHistogram(GtkWidget *widget, cairo_t *cr, gpointer data); 
+void update_displayed_type();
 
 #endif
