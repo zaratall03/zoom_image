@@ -27,7 +27,7 @@ Image convertPixbufToImage(GdkPixbuf *pixbuf);
 void on_combo_box_changed(GtkComboBox *combo_box, gpointer user_data);
 void timed_zoom(ZoomType type, float zoomFactor, Zoom zoomFunc);
 void save_file(GtkMenuItem *menu_item, gpointer user_data); 
-
+gboolean draw_histogram(GtkWidget *widget, cairo_t *cr, gpointer data);
 void *timed_zoom_thread(void *args); 
 
 

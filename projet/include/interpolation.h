@@ -9,8 +9,9 @@
 typedef enum {
     NEAREST_NEIGHBOR = 0, 
     BILINEAR = 1,
-    HERMITE = 2, 
-    BICUBIQUE = 3, 
+    // HERMITE = 2, 
+    BICUBIQUE = 2, 
+    // BICUBIQUE = 3, 
 } ZoomType;
 
 
@@ -40,7 +41,6 @@ Image zoomOutNearestNeighbor(Image image, float zoomFactor) ;
 
 Image zoomOutHermite(Image image, float zoomFactor) ;
 Image zoomHermite(Image image, float zoomFactor) ;
-Image* zoomH(const Image *image, float zoomFactor);
 unsigned char interpolateHermite(const Image *image, float x, float y, int channel);
 
 void afficheResult(Result  res);

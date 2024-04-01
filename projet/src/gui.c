@@ -24,6 +24,7 @@ ResultTab resultTab;
 
 GtkWidget *labels[NB_TYPE];
 GtkBuilder *builder;
+GtkWidget *drawing_area;
 
 char* algo_displayed[NB_TYPE] = {"PPV", "Bilinéaire", "Hermite", "Bicubique"};
 
@@ -56,6 +57,8 @@ int main(int argc, char *argv[]) {
     openOption = GTK_WIDGET(gtk_builder_get_object(builder, "OpenOption"));
     saveOption = GTK_WIDGET(gtk_builder_get_object(builder, "SaveOption"));
     algoSelector = GTK_WIDGET(gtk_builder_get_object(builder, "algoSelector"));
+    drawing_area = GTK_WIDGET(gtk_builder_get_object(builder, "histo"));
+    
 
     initMainWindow(window);
 
@@ -67,6 +70,8 @@ int main(int argc, char *argv[]) {
     g_signal_connect(imageEventBox, "button-release-event", G_CALLBACK(on_mouse_button_release), image);
     g_signal_connect(G_OBJECT(algoSelector), "changed", G_CALLBACK(on_combo_box_changed), image);
     g_signal_connect(G_OBJECT(algoSelector), "button-release-event", G_CALLBACK(on_combo_box_changed), image);
+    g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_histogram), NULL);
+
 
     gtk_widget_show_all(window);
     gtk_main();

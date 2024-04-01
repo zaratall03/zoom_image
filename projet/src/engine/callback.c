@@ -24,14 +24,12 @@ extern GtkWidget * labels[NB_TYPE];
 Zoom zoomInList[NB_TYPE] = {
     zoomNearestNeighbor,
     zoomBilinear,
-    zoomHermite,
     zoomBicubic,
 };
 
 Zoom zoomOutList[NB_TYPE] = {
     zoomOutNearestNeighbor,
     zoomOutBilinear,
-    zoomOutHermite,
     zoomOutBicubic,
 };
 
@@ -279,6 +277,7 @@ Image convertPixbufToImage(GdkPixbuf *pixbuf) {
 //     return TRUE;
 // }
 
+
 gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWidget *image) {
     if (image == NULL || (!zoomInClicked && !zoomOutClicked)) {
         return TRUE;
@@ -310,6 +309,7 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
                 fprintf(stderr, "Erreur lors de l'attente du thread pour le zoom %d\n", zoom);
             }
         }
+        printf("\nDISPLAYED  ZOOM : %d", displayedZoomType);
         imgRes = getImageFromResult(displayedZoomType);
         GdkPixbuf *zoomedPixbuf = convertImageToPixbuf(imgRes);
         if (zoomedPixbuf != NULL) {
@@ -327,6 +327,7 @@ gboolean on_mouse_button_release(GtkWidget *widget, GdkEventButton *event, GtkWi
             res[t] = calculateElapsedTime(start, end);
         }
         update_labels(res);
+        gtk_widget_queue_draw(drawing_area);
     }
     return TRUE;
 }
@@ -365,4 +366,112 @@ void timed_zoom(ZoomType type, float zoomFactor, Zoom zoomFunc) {
 }
 
 
+#define HISTOGRAM_WIDTH 100
+#define HISTOGRAM_HEIGHT 100
+
+// gboolean draw_histogram(GtkWidget *widget, cairo_t *cr, gpointer data) {
+//     GtkImage *image = GTK_IMAGE(data);
+
+//     // Obtenir le GdkPixbuf à partir de l'image
+//     GdkPixbuf *pixbuf = gtk_image_get_pixbuf(image);
+
+//     // Calculer l'histogramme
+//     int histogram[256] = {0};
+//     int channels = gdk_pixbuf_get_n_channels(pixbuf);
+//     int width = gdk_pixbuf_get_width(pixbuf);
+//     int height = gdk_pixbuf_get_height(pixbuf);
+//     guchar *pixels = gdk_pixbuf_get_pixels(pixbuf);
+//     guchar *p;
+//     for (int y = 0; y < height; y++) {
+//         for (int x = 0; x < width; x++) {
+//             p = pixels + y * gdk_pixbuf_get_rowstride(pixbuf) + x * channels;
+//             int intensity = (p[0] + p[1] + p[2]) / 3; // Moyenne des canaux RGB
+//             histogram[intensity]++;
+//         }
+//     }
+
+//     // Dessiner l'histogramme
+//     cairo_set_source_rgb(cr, 1, 1, 1); // Fond blanc
+//     cairo_paint(cr);
+//     cairo_set_source_rgb(cr, 0, 0, 0); // Trait noir
+//     cairo_set_line_width(cr, 1);
+
+//     double max_value = 0;
+//     for (int i = 0; i < 256; i++) {
+//         if (histogram[i] > max_value) {
+//             max_value = histogram[i];
+//         }
+//     }
+
+//     double scale_factor = (double)HISTOGRAM_HEIGHT / max_value;
+//     double bar_width = (double)HISTOGRAM_WIDTH/ 256;
+
+//     for (int i = 0; i < 256; i++) {
+//         double x = i * bar_width;
+//         double y = HISTOGRAM_HEIGHT - histogram[i] * scale_factor;
+//         cairo_rectangle(cr, x, y, bar_width, histogram[i] * scale_factor);
+//         cairo_fill(cr);
+//         cairo_stroke(cr);
+//     }
+
+//     return FALSE; // Indique que le dessin est terminé
+// }
+
+
+gboolean draw_histogram(GtkWidget *widget, cairo_t *cr, gpointer data) {
+    if(uploaded){
+
+        GtkImage *image = GTK_IMAGE(data);
+
+        // Obtenir le GdkPixbuf à partir de l'image
+        GdkPixbuf *pixbuf = gtk_image_get_pixbuf(image);
+
+        // Obtenir la largeur du widget
+        int widget_width = gtk_widget_get_allocated_width(widget);
+
+        // Calculer la hauteur du widget en fonction de sa largeur
+        int widget_height = widget_width * gdk_pixbuf_get_height(pixbuf) / gdk_pixbuf_get_width(pixbuf);
+
+        // Calculer l'histogramme
+        int histogram[256] = {0};
+        int channels = gdk_pixbuf_get_n_channels(pixbuf);
+        int width = gdk_pixbuf_get_width(pixbuf);
+        int height = gdk_pixbuf_get_height(pixbuf);
+        guchar *pixels = gdk_pixbuf_get_pixels(pixbuf);
+        guchar *p;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                p = pixels + y * gdk_pixbuf_get_rowstride(pixbuf) + x * channels;
+                int intensity = (p[0] + p[1] + p[2]) / 3; // Moyenne des canaux RGB
+                histogram[intensity]++;
+            }
+        }
+
+        // Dessiner l'histogramme
+        cairo_set_source_rgb(cr, 1, 1, 1); // Fond blanc
+        cairo_paint(cr);
+        cairo_set_source_rgb(cr, 0, 0, 0); // Trait noir
+        cairo_set_line_width(cr, 1);
+
+        double max_value = 0;
+        for (int i = 0; i < 256; i++) {
+            if (histogram[i] > max_value) {
+                max_value = histogram[i];
+            }
+        }
+
+        double scale_factor = (double)widget_height / max_value;
+        double bar_width = (double)widget_width / 256;
+
+        for (int i = 0; i < 256; i++) {
+            double x = i * bar_width;
+            double y = widget_height - histogram[i] * scale_factor;
+            cairo_rectangle(cr, x, y, bar_width, histogram[i] * scale_factor);
+            cairo_fill(cr);
+            cairo_stroke(cr);
+        }
+        printf("Histogramme à jour");
+        return FALSE; // Indique que le dessin est terminé
+    }
+}
 

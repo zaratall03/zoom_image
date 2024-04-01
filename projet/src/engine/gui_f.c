@@ -13,8 +13,9 @@ extern char* algo_displayed[];
 void initializeResultTab() {  
     pthread_mutex_lock(&lock);
     resultTab.nbAlgo = NB_TYPE;
-    printf("%d", resultTab.nbAlgo);
-    for (ZoomType zoom = BILINEAR; zoom <= BICUBIQUE; zoom++){
+    printf("\nRésultat"); 
+    for (ZoomType zoom = NEAREST_NEIGHBOR; zoom <= BICUBIQUE; zoom++){
+        printf("%d", zoom);
         resultTab.results[zoom].start.tv_sec = 0;
         resultTab.results[zoom].start.tv_nsec = 0;
         resultTab.results[zoom].end.tv_sec = 0;
@@ -42,7 +43,7 @@ void update_labels(double* res) {
     char buffer[20]; 
     GtkWidget *label_PPVRes = GTK_WIDGET(gtk_builder_get_object(builder, "PPVRes"));
     GtkWidget *label_BilinearRes = GTK_WIDGET(gtk_builder_get_object(builder, "BilinearRes"));
-    GtkWidget *label_HermiteRes = GTK_WIDGET(gtk_builder_get_object(builder, "HermiteRes"));
+    // GtkWidget *label_HermiteRes = GTK_WIDGET(gtk_builder_get_object(builder, "HermiteRes"));
     GtkWidget *label_BiCubiqueRes = GTK_WIDGET(gtk_builder_get_object(builder, "BiCubiqueRes"));    
     
 
@@ -52,8 +53,8 @@ void update_labels(double* res) {
     sprintf(buffer, "%f", res[BILINEAR]);
     gtk_label_set_text(GTK_LABEL(label_BilinearRes), buffer);
 
-    sprintf(buffer, "%f", res[HERMITE]);
-    gtk_label_set_text(GTK_LABEL(label_HermiteRes), buffer);
+    // sprintf(buffer, "%f", res[HERMITE]);
+    // gtk_label_set_text(GTK_LABEL(label_HermiteRes), buffer);
 
     sprintf(buffer, "%f", res[BICUBIQUE]);
     gtk_label_set_text(GTK_LABEL(label_BiCubiqueRes), buffer);
@@ -61,7 +62,7 @@ void update_labels(double* res) {
     
     gtk_widget_queue_draw(label_PPVRes);
     gtk_widget_queue_draw(label_BilinearRes);
-    gtk_widget_queue_draw(label_HermiteRes);
+    // gtk_widget_queue_draw(label_HermiteRes);
     gtk_widget_queue_draw(label_BiCubiqueRes);
     update_displayed_type();
 }

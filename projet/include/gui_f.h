@@ -1,4 +1,4 @@
-    #ifndef GUI_F_H
+#ifndef GUI_F_H
 #define GUI_F_H
 #include <gtk/gtk.h>
 #include "interpolation.h"

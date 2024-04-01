@@ -14,6 +14,8 @@ extern ResultTab resultTab;
 extern pthread_mutex_t lock;
 extern ZoomType displayedZoomType; 
 
+
+
 unsigned char interpolateHermite(const Image *image, float x, float y, int channel) {
     int x0 = (int)x;
     int y0 = (int)y;
@@ -47,25 +49,23 @@ unsigned char interpolateHermite(const Image *image, float x, float y, int chann
     }
 }
 
-Image zoomHermite(Image image, float zoomFactor){
-    zoomH(&image, zoomFactor);
-}
-Image* zoomH(const Image *image, float zoomFactor) {
-    int newWidth = (int)(image->width * zoomFactor);
-    int newHeight = (int)(image->height * zoomFactor);
+Image zoomHermite(const Image image, float zoomFactor) {
+    printf("\nHermite");
+    int newWidth = (int)(image.width * zoomFactor);
+    int newHeight = (int)(image.height * zoomFactor);
 
-    Image *zoomedImage = (Image*)malloc(sizeof(Image));
-    zoomedImage->width = newWidth;
-    zoomedImage->height = newHeight;
-    zoomedImage->channels = image->channels;
-    zoomedImage->data = (unsigned char*)malloc(newWidth * newHeight * image->channels * sizeof(unsigned char));
+    Image zoomedImage;
+    zoomedImage.width = newWidth;
+    zoomedImage.height = newHeight;
+    zoomedImage.channels = image.channels;
+    zoomedImage.data = (unsigned char*)malloc(newWidth * newHeight * image.channels * sizeof(unsigned char));
 
     for (int y = 0; y < newHeight; y++) {
         for (int x = 0; x < newWidth; x++) {
             float origX = x / zoomFactor;
             float origY = y / zoomFactor;
-            for (int channel = 0; channel < image->channels; channel++) {
-                zoomedImage->data[(y * newWidth + x) * image->channels + channel] = interpolateHermite(image, origX, origY, channel);
+            for (int channel = 0; channel < image.channels; channel++) {
+                zoomedImage.data[(y * newWidth + x) * image.channels + channel] = interpolateHermite(&image, origX, origY, channel);
             }
         }
     }
@@ -75,13 +75,12 @@ Image* zoomH(const Image *image, float zoomFactor) {
 
 
 
-
-
 Image zoomOutNearestNeighbor(Image image, float zoomFactor) {
     float zoomFactorInverse = 1.0f / zoomFactor;
     return zoomNearestNeighbor(image, zoomFactorInverse);
 }
 Image zoomNearestNeighbor(Image image, float zoomFactor) {
+    printf("\nPPV");
     int newWidth = image.width * zoomFactor;
     int newHeight = image.height * zoomFactor;
 
@@ -114,7 +113,7 @@ float bilinearInterpolation(float p00, float p01, float p10, float p11, float u,
 
 
 Image zoomBilinear(Image image, float zoomFactor) {
-
+    printf("\nBilinéaire"); 
     int newWidth = (int)(image.width * zoomFactor);
     int newHeight = (int)(image.height * zoomFactor);
 
@@ -202,7 +201,7 @@ void afficheResultTab(ResultTab res) {
 
 double calculateElapsedTime(struct timespec start, struct timespec end) {
     double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); 
-    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0; // Conversion en secondes
+    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0;
     double res = elapsedSeconds + elapsedNanoseconds;
     return res;
 }
@@ -262,7 +261,46 @@ unsigned char cubicInterpolate(unsigned char p[4], unsigned char x) {
 }
 
 
+// Image zoomBicubic(Image image, float zoomFactor) {
+//     int newWidth = (int)(image.width * zoomFactor);
+//     int newHeight = (int)(image.height * zoomFactor);
+
+//     Image resizedImage;
+//     resizedImage.width = newWidth;
+//     resizedImage.height = newHeight;
+//     resizedImage.channels = image.channels;
+//     resizedImage.data = (unsigned char *)malloc(newWidth * newHeight * resizedImage.channels * sizeof(unsigned char));
+
+//     float x_ratio = (float)(image.width - 1) / newWidth;
+//     float y_ratio = (float)(image.height - 1) / newHeight;
+
+//     for (int y = 0; y < newHeight; ++y) {
+//         for (int x = 0; x < newWidth; ++x) {
+//             float x_l = floor(x * x_ratio);
+//             float y_l = floor(y * y_ratio);
+//             float x_h = x_l + 1;
+//             float y_h = y_l + 1;
+
+//             float x_frac = x * x_ratio - x_l;
+//             float y_frac = y * y_ratio - y_l;
+
+//             unsigned char p[4];
+//             for (int c = 0; c < image.channels; ++c) {
+//                 p[0] = getPixelComposante(image, (int)x_l, (int)y_l, c);
+//                 p[1] = getPixelComposante(image, (int)x_h, (int)y_l, c);
+//                 p[2] = getPixelComposante(image, (int)x_h, (int)y_h, c);
+//                 p[3] = getPixelComposante(image, (int)x_l, (int)y_h, c);
+
+//                 resizedImage.data[(y * newWidth + x) * resizedImage.channels + c] = cubicInterpolate(p, x_frac);
+//             }
+//         }
+//     }
+
+//     return resizedImage;
+// }
+
 Image zoomBicubic(Image image, float zoomFactor) {
+    printf("\nBicubique");
     int newWidth = (int)(image.width * zoomFactor);
     int newHeight = (int)(image.height * zoomFactor);
 
@@ -287,10 +325,10 @@ Image zoomBicubic(Image image, float zoomFactor) {
 
             unsigned char p[4];
             for (int c = 0; c < image.channels; ++c) {
-                p[0] = getPixelComposante(image, (int)x_l, (int)y_l, c);
-                p[1] = getPixelComposante(image, (int)x_h, (int)y_l, c);
-                p[2] = getPixelComposante(image, (int)x_h, (int)y_h, c);
-                p[3] = getPixelComposante(image, (int)x_l, (int)y_h, c);
+                p[0] = getPixelComposante(image, (int)fmax(0, x_l), (int)fmax(0, y_l), c);
+                p[1] = getPixelComposante(image, (int)fmin(image.width - 1, x_h), (int)fmax(0, y_l), c);
+                p[2] = getPixelComposante(image, (int)fmin(image.width - 1, x_h), (int)fmin(image.height - 1, y_h), c);
+                p[3] = getPixelComposante(image, (int)fmax(0, x_l), (int)fmin(image.height - 1, y_h), c);
 
                 resizedImage.data[(y * newWidth + x) * resizedImage.channels + c] = cubicInterpolate(p, x_frac);
             }

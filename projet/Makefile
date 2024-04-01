@@ -5,10 +5,6 @@ LIBS = `pkg-config --cflags --libs gtk+-3.0` -lm
 OBJDIR = bin/obj
 BINDIR = bin
 
-directories:
-	mkdir -p $(OBJDIR)
-	mkdir -p $(BINDIR)
-
 
 # Cibles principales
 all : directories img inter callback graphic_f gui 
@@ -48,3 +44,9 @@ exetest :
 clean:
 	rm -rf $(BINDIR)/*
 	mkdir -p $(OBJDIR)
+
+# Crée les dossiers nécessaires à la compilation du projet
+directories:
+	mkdir -p $(OBJDIR)
+	mkdir -p $(BINDIR)
+
