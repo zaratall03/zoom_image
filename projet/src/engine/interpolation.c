@@ -16,71 +16,15 @@ extern ZoomType displayedZoomType;
 
 
 
-unsigned char interpolateHermite(const Image *image, float x, float y, int channel) {
-    int x0 = (int)x;
-    int y0 = (int)y;
-    int x1 = x0 + 1;
-    int y1 = y0 + 1;
-
-    float tx = x - x0;
-    float ty = y - y0;
-
-    int index00 = (y0 * image->width + x0) * image->channels + channel;
-    int index01 = (y0 * image->width + x1) * image->channels + channel;
-    int index10 = (y1 * image->width + x0) * image->channels + channel;
-    int index11 = (y1 * image->width + x1) * image->channels + channel;
-
-    unsigned char v00 = image->data[index00];
-    unsigned char v01 = image->data[index01];
-    unsigned char v10 = image->data[index10];
-    unsigned char v11 = image->data[index11];
-
-    float interpolatedValue = (1 - tx) * (1 - ty) * v00 +
-                              tx * (1 - ty) * v01 +
-                              (1 - tx) * ty * v10 +
-                              tx * ty * v11;
-
-    if (interpolatedValue < 0) {
-        return 0;
-    } else if (interpolatedValue > 255) {
-        return 255;
-    } else {
-        return (unsigned char)interpolatedValue;
-    }
-}
-
-Image zoomHermite(const Image image, float zoomFactor) {
-    printf("\nHermite");
-    int newWidth = (int)(image.width * zoomFactor);
-    int newHeight = (int)(image.height * zoomFactor);
-
-    Image zoomedImage;
-    zoomedImage.width = newWidth;
-    zoomedImage.height = newHeight;
-    zoomedImage.channels = image.channels;
-    zoomedImage.data = (unsigned char*)malloc(newWidth * newHeight * image.channels * sizeof(unsigned char));
-
-    for (int y = 0; y < newHeight; y++) {
-        for (int x = 0; x < newWidth; x++) {
-            float origX = x / zoomFactor;
-            float origY = y / zoomFactor;
-            for (int channel = 0; channel < image.channels; channel++) {
-                zoomedImage.data[(y * newWidth + x) * image.channels + channel] = interpolateHermite(&image, origX, origY, channel);
-            }
-        }
-    }
-
-    return zoomedImage;
-}
-
-
-
-Image zoomOutNearestNeighbor(Image image, float zoomFactor) {
-    float zoomFactorInverse = 1.0f / zoomFactor;
-    return zoomNearestNeighbor(image, zoomFactorInverse);
-}
+/**
+ * Effectue un zoom d'image en utilisant l'interpolation du voisin le plus proche.
+ * 
+ * @param image         L'image d'entrée à zoomer.
+ * @param zoomFactor    Le facteur de zoom pour agrandir ou réduire l'image.
+ * 
+ * @return  L'image zoomée en utilisant l'algorithme du voisin le plus proche.
+ */
 Image zoomNearestNeighbor(Image image, float zoomFactor) {
-    printf("\nPPV");
     int newWidth = image.width * zoomFactor;
     int newHeight = image.height * zoomFactor;
 
@@ -104,16 +48,38 @@ Image zoomNearestNeighbor(Image image, float zoomFactor) {
     }
     return newImage;
 }
+Image zoomOutNearestNeighbor(Image image, float zoomFactor) {
+    float zoomFactorInverse = 1.0f / zoomFactor;
+    return zoomNearestNeighbor(image, zoomFactorInverse);
+}
 
 
 
+/**
+ * Calcule une valeur interpolée en fonction de quatre valeurs d'entrée et de deux facteurs d'interpolation.
+ * 
+ * @param p00   Valeur à la coordonnée (0, 0) de la grille d'interpolation.
+ * @param p01   Valeur à la coordonnée (0, 1) de la grille d'interpolation.
+ * @param p10   Valeur à la coordonnée (1, 0) de la grille d'interpolation.
+ * @param p11   Valeur à la coordonnée (1, 1) de la grille d'interpolation.
+ * @param u     Facteur d'interpolation horizontal, de 0 à 1.
+ * @param v     Facteur d'interpolation vertical, de 0 à 1.
+ * 
+ * @return  La valeur interpolée aux coordonnées (u, v) basée sur les quatre valeurs d'entrée.
+ */
 float bilinearInterpolation(float p00, float p01, float p10, float p11, float u, float v) {
     return (1 - u) * (1 - v) * p00 + u * (1 - v) * p10 + (1 - u) * v * p01 + u * v * p11;
 }
 
-
+/**
+ * Redimensionne une image en utilisant une interpolation bilinéaire avec un facteur de zoom spécifié.
+ * 
+ * @param image         L'image originale à redimensionner.
+ * @param zoomFactor    Le facteur de zoom pour agrandir ou réduire l'image.
+ * 
+ * @return  L'image redimensionnée après interpolation bilinéaire.
+ */
 Image zoomBilinear(Image image, float zoomFactor) {
-    printf("\nBilinéaire"); 
     int newWidth = (int)(image.width * zoomFactor);
     int newHeight = (int)(image.height * zoomFactor);
 
@@ -170,42 +136,100 @@ Image zoomOutBilinear(Image image, float zoomFactor) {
 
 
 
-Image zoomOutHermite(Image image, float zoomFactor) {
-    float zoomFactorInverse = 1.0f / zoomFactor;
-    return zoomHermite(image, zoomFactorInverse);
+/**
+ * Effectue une interpolation cubique sur un tableau de quatre valeurs avec le facteur d'interpolation spécifié.
+ * 
+ * @param p Les quatre points de contrôle pour l'interpolation cubique.
+ * @param x Le facteur d'interpolation.
+ * 
+ * @return  La valeur interpolée à la position `x`.
+ */
+double cubicInterpolate(double p[4], double x) {
+    return p[1] + 0.5 * x * (p[2] - p[0] + x * (2.0 * p[0] - 5.0 * p[1] + 4.0 * p[2] - p[3] + x * (3.0 * (p[1] - p[2]) + p[3] - p[0])));
 }
 
+/**
+ * Redimensionne une image en utilisant une interpolation bicubique avec un facteur de zoom spécifié.
+ * 
+ * @param image         L'image originale à redimensionner.
+ * @param zoomFactor    Le facteur de zoom pour agrandir ou réduire l'image.
+ * 
+ * @return  L'image redimensionnée après interpolation bicubique.
+ */
+Image zoomBicubic(Image image, float zoomFactor) {
+    int newWidth = (int)(image.width * zoomFactor);
+    int newHeight = (int)(image.height * zoomFactor);
 
+    Image resizedImage;
+    resizedImage.width = newWidth;
+    resizedImage.height = newHeight;
+    resizedImage.channels = image.channels;
+    resizedImage.data = (unsigned char *)malloc(newWidth * newHeight * resizedImage.channels * sizeof(unsigned char));
 
+    for (int y = 0; y < newHeight; ++y) {
+        for (int x = 0; x < newWidth; ++x) {
+            float origX = (float)x / zoomFactor;
+            float origY = (float)y / zoomFactor;
 
-void afficheResult(Result res) {
-    printf("ZoomType: %d\n", res.zoomType);
-    printf("Start Time: %ld.%ld\n", res.start.tv_sec, res.start.tv_nsec);
-    printf("End Time: %ld.%ld\n", res.end.tv_sec, res.end.tv_nsec);
-    printf("Dimension image : %dx%d", res.resultImage.width, res.resultImage.height);
-    calculateElapsedTime(res.start, res.end);
-    printf("\n");
-}
-
-void afficheResultTab(ResultTab res) {
-    printf("Nombre d'algorithmes: %d\n", res.nbAlgo);
-    printf("Résultats:\n");
-    for (int i = 0; i < res.nbAlgo; ++i) {
-        printf("Résultat %d:\n", i);
-        afficheResult(res.results[i]);
+            for (int c = 0; c < image.channels; ++c) {
+                resizedImage.data[(y * newWidth + x) * resizedImage.channels + c] = bicubicInterpolate(&image, origX, origY, c);
+            }
+        }
     }
+
+    return resizedImage;
+}
+
+/**
+ * Effectue une interpolation bicubique sur une image à une position donnée.
+ * 
+ * @param image     Pointeur vers une structure représentant une image.
+ * @param x         Coordonnée horizontale pour l'interpolation bicubique.
+ * @param y         Coordonnée verticale pour l'interpolation bicubique.
+ * @param channelIndex  Index du canal de couleur à interpoler dans l'image.
+ * 
+ * @return  La valeur interpolée bicubique pour les coordonnées (x, y) et l'indice du canal spécifié.
+ */
+double bicubicInterpolate(Image *image, double x, double y, int channelIndex) {
+    int x_int = (int)x;
+    int y_int = (int)y;
+    double x_frac = x - x_int;
+    double y_frac = y - y_int;
+
+    double p[4][4];
+    for (int j = 0; j < 4; j++) {
+        for (int i = 0; i < 4; i++) {
+            int xi = x_int - 1 + i;
+            int yj = y_int - 1 + j;
+            xi = xi < 0 ? 0 : (xi >= image->width ? image->width - 1 : xi);
+            yj = yj < 0 ? 0 : (yj >= image->height ? image->height - 1 : yj);
+            p[j][i] = image->data[(yj * image->width + xi) * image->channels + channelIndex];
+        }
+    }
+
+    double arr[4];
+    arr[0] = cubicInterpolate(p[0], x_frac);
+    arr[1] = cubicInterpolate(p[1], x_frac);
+    arr[2] = cubicInterpolate(p[2], x_frac);
+    arr[3] = cubicInterpolate(p[3], x_frac);
+    return cubicInterpolate(arr, y_frac);
 }
 
 
-
-
-double calculateElapsedTime(struct timespec start, struct timespec end) {
-    double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); 
-    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0;
-    double res = elapsedSeconds + elapsedNanoseconds;
-    return res;
+Image zoomOutBicubic(Image image, float zoomFactor) {
+    float zoomFactorInverse = 1.0f / zoomFactor;
+    return zoomBicubic(image, zoomFactorInverse);
 }
 
+
+/**
+ * Utilise des verrous mutex pour accéder en toute sécurité et modifier les données dans la structure
+ * partagée `resultTab` basée sur le type de zoom fourni.
+ * 
+ * @param type Le type de zoom utilisé pour identifier les résultats ou les images dans `resultTab`.
+ * 
+ * @return Les fonctions renvoient des valeurs de type `struct timespec` et `Image` en fonction du type de zoom.
+ */
 struct timespec getStartFromResult(ZoomType type) {
     struct timespec start;
     pthread_mutex_lock(&lock);
@@ -249,97 +273,11 @@ void setImageFromResult(ZoomType type, Image res) {
 }
 
 
-
-Image zoomOutBicubic(Image image, float zoomFactor) {
-    float zoomFactorInverse = 1.0f / zoomFactor;
-    return zoomBicubic(image, zoomFactorInverse);
-}
-
-
-unsigned char cubicInterpolate(unsigned char p[4], unsigned char x) {
-    return p[1] + 0.5 * x * (p[2] - p[0] + x * (2.0 * p[0] - 5.0 * p[1] + 4.0 * p[2] - p[3] + x * (3.0 * (p[1] - p[2]) + p[3] - p[0])));
-}
-
-
-// Image zoomBicubic(Image image, float zoomFactor) {
-//     int newWidth = (int)(image.width * zoomFactor);
-//     int newHeight = (int)(image.height * zoomFactor);
-
-//     Image resizedImage;
-//     resizedImage.width = newWidth;
-//     resizedImage.height = newHeight;
-//     resizedImage.channels = image.channels;
-//     resizedImage.data = (unsigned char *)malloc(newWidth * newHeight * resizedImage.channels * sizeof(unsigned char));
-
-//     float x_ratio = (float)(image.width - 1) / newWidth;
-//     float y_ratio = (float)(image.height - 1) / newHeight;
-
-//     for (int y = 0; y < newHeight; ++y) {
-//         for (int x = 0; x < newWidth; ++x) {
-//             float x_l = floor(x * x_ratio);
-//             float y_l = floor(y * y_ratio);
-//             float x_h = x_l + 1;
-//             float y_h = y_l + 1;
-
-//             float x_frac = x * x_ratio - x_l;
-//             float y_frac = y * y_ratio - y_l;
-
-//             unsigned char p[4];
-//             for (int c = 0; c < image.channels; ++c) {
-//                 p[0] = getPixelComposante(image, (int)x_l, (int)y_l, c);
-//                 p[1] = getPixelComposante(image, (int)x_h, (int)y_l, c);
-//                 p[2] = getPixelComposante(image, (int)x_h, (int)y_h, c);
-//                 p[3] = getPixelComposante(image, (int)x_l, (int)y_h, c);
-
-//                 resizedImage.data[(y * newWidth + x) * resizedImage.channels + c] = cubicInterpolate(p, x_frac);
-//             }
-//         }
-//     }
-
-//     return resizedImage;
-// }
-
-Image zoomBicubic(Image image, float zoomFactor) {
-    printf("\nBicubique");
-    int newWidth = (int)(image.width * zoomFactor);
-    int newHeight = (int)(image.height * zoomFactor);
-
-    Image resizedImage;
-    resizedImage.width = newWidth;
-    resizedImage.height = newHeight;
-    resizedImage.channels = image.channels;
-    resizedImage.data = (unsigned char *)malloc(newWidth * newHeight * resizedImage.channels * sizeof(unsigned char));
-
-    float x_ratio = (float)(image.width - 1) / newWidth;
-    float y_ratio = (float)(image.height - 1) / newHeight;
-
-    for (int y = 0; y < newHeight; ++y) {
-        for (int x = 0; x < newWidth; ++x) {
-            float x_l = floor(x * x_ratio);
-            float y_l = floor(y * y_ratio);
-            float x_h = x_l + 1;
-            float y_h = y_l + 1;
-
-            float x_frac = x * x_ratio - x_l;
-            float y_frac = y * y_ratio - y_l;
-
-            unsigned char p[4];
-            for (int c = 0; c < image.channels; ++c) {
-                p[0] = getPixelComposante(image, (int)fmax(0, x_l), (int)fmax(0, y_l), c);
-                p[1] = getPixelComposante(image, (int)fmin(image.width - 1, x_h), (int)fmax(0, y_l), c);
-                p[2] = getPixelComposante(image, (int)fmin(image.width - 1, x_h), (int)fmin(image.height - 1, y_h), c);
-                p[3] = getPixelComposante(image, (int)fmax(0, x_l), (int)fmin(image.height - 1, y_h), c);
-
-                resizedImage.data[(y * newWidth + x) * resizedImage.channels + c] = cubicInterpolate(p, x_frac);
-            }
-        }
-    }
-
-    return resizedImage;
-}
-
-
-
+/**
+ * Récupère le type de zoom actuellement affiché en assurant la sécurité des threads avec un mutex.
+ * 
+ * @return  Le type de zoom actuellement affiché, de type `ZoomType`.
+ */
 ZoomType getdisplayedZoomType(){
     pthread_mutex_lock(&lock);
     ZoomType res = displayedZoomType;
@@ -348,8 +286,48 @@ ZoomType getdisplayedZoomType(){
 }
 
 
+/**
+ * Définit le type de zoom affiché en toute sécurité des threads avec un mutex.
+ * 
+ * @param newType   Le type de zoom à afficher, de type `ZoomType`.
+ */
 void setdisplayedZoomType(ZoomType newType){
     pthread_mutex_lock(&lock);
     displayedZoomType =  newType;
     pthread_mutex_unlock(&lock);
 }
+/**
+ * Calcule le temps écoulé en secondes entre deux structures timespec.
+ * 
+ * @param start Début de l'intervalle temporel.
+ * @param end Fin de l'intervalle temporel.
+ * 
+ * @return  Le temps écoulé en secondes sous forme de valeur double.
+ */
+double calculateElapsedTime(struct timespec start, struct timespec end) {
+    double elapsedSeconds = (double)(end.tv_sec - start.tv_sec); 
+    double elapsedNanoseconds = (double)(end.tv_nsec - start.tv_nsec) / 1000000000.0;
+    double res = elapsedSeconds + elapsedNanoseconds;
+    return res;
+}
+
+
+void afficheResult(Result res) {
+    printf("ZoomType: %d\n", res.zoomType);
+    printf("Start Time: %ld.%ld\n", res.start.tv_sec, res.start.tv_nsec);
+    printf("End Time: %ld.%ld\n", res.end.tv_sec, res.end.tv_nsec);
+    printf("Dimension image : %dx%d", res.resultImage.width, res.resultImage.height);
+    calculateElapsedTime(res.start, res.end);
+    printf("\n");
+}
+
+void afficheResultTab(ResultTab res) {
+    printf("Nombre d'algorithmes: %d\n", res.nbAlgo);
+    printf("Résultats:\n");
+    for (int i = 0; i < res.nbAlgo; ++i) {
+        printf("Résultat %d:\n", i);
+        afficheResult(res.results[i]);
+    }
+}
+
+

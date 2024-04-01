@@ -35,24 +35,11 @@
                         <property name="use_stock">True</property>
                       </object>
                     </child>
-                    <child>
-                      <object class="GtkSeparatorMenuItem" id="separatormenuitem1">
-                        <property name="visible">True</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkImageMenuItem" id="QuitOption">
-                        <property name="label">gtk-quit</property>
-                        <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                      </object>
-                    </child>
                   </object>
                 </child>
               </object>
             </child>
-            <child>
+            <!-- <child>
               <object class="GtkMenuItem" id="HelpMenu">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_Help</property>
@@ -71,7 +58,7 @@
                   </object>
                 </child>
               </object>
-            </child>
+            </child> -->
           </object>
           <packing>
             <property name="resize">False</property>

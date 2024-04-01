@@ -14,10 +14,6 @@ typedef struct Image{
 
 
 
-/**
- * Primitives
- * 
-*/
 int getWidth(Image image);
 int getHeight(Image image);
 int getnbPixelChannels(Image image);
@@ -28,7 +24,6 @@ void set_pixel(Image *img, int x, int y, int c, unsigned char value);
 Image loadImage(char* path);
 Image freeImage(Image image);
 void affichePixel(Image image, int x, int y);
-Image extractSubmatrix(Image image, int startX, int startY, int endX, int endY);
 void free_image(Image *img);
 unsigned char getPixelComposante(Image image, int x, int y, int channel);
 void setPixelComposante(Image *image, int x, int y, int channel, unsigned char value);

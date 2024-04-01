@@ -2,11 +2,11 @@
 
 ## Description du Projet
 
-Ce projet a pour objectif la réalisation d'une interface graphique permettant d'appliquer des zooms (avant et arrière) sur des images. En parallèle, une étude comparative sera menée entre quatre algorithmes de zoom différents :
+Ce projet a pour objectif la réalisation d'une interface graphique permettant d'appliquer des zooms (avant et arrière) sur des images. En parallèle, une étude comparative sera menée entre trois algorithmes de zoom différents :
 
 1. **Méthode du Plus Proche Voisin**
 2. **Méthode Bilinéaire**
-3. **Méthode d'Hermite**
+3. **Méthode Bilinéaire**
 
 ## Fonctionnalités de l'Interface Graphique
 
@@ -26,9 +26,6 @@ L'interface graphique développée dans ce projet offrira les fonctionnalités s
 
 3. **Manipulation de l'Image :** Chargez une image et utilisez les commandes d'interface pour appliquer les zooms avec différents algorithmes.
 
-4. **Observation des Résultats :** Comparez les résultats obtenus avec chaque algorithme et analysez les performances visuelles.
-
 ## Étude Comparative des Algorithmes
 
-L'étude comparative sera basée sur des critères tels que la qualité visuelle des zooms, la rapidité d'exécution, et la consommation de ressources. Les résultats seront présentés dans un rapport détaillé inclus dans ce projet.
-
+L'étude comparative sera basée sur des critères tels que la qualité visuelle des zooms et la rapidité d'exécution.

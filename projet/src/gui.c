@@ -26,13 +26,12 @@ GtkWidget *labels[NB_TYPE];
 GtkBuilder *builder;
 GtkWidget *drawing_area;
 
-char* algo_displayed[NB_TYPE] = {"PPV", "Bilinéaire", "Hermite", "Bicubique"};
+char* algo_displayed[NB_TYPE] = {"PPV", "Bilinéaire", "Bicubique"};
 
 
 int main(int argc, char *argv[]) {
-    initializeResultTab();
+    initializeResultTab(); // Initialisation du tableau de résultat
     gtk_init(&argc, &argv);
-    srand(time(NULL));
 
     GtkWidget *window;
     GtkWidget *imageEventBox;
@@ -43,12 +42,14 @@ int main(int argc, char *argv[]) {
     GtkWidget *saveOption;
     GtkWidget *typeAlgoEntry;
     GtkWidget *algoSelector;
+    GtkWidget *quitOption;
 
     Image originalImg;
-
+    // Chargement du fichier Glade
     builder = gtk_builder_new();
     gtk_builder_add_from_file(builder, GLADE_FILE, NULL);
 
+    // Chargement des différents widgets sur lesquels on travaille
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window1"));
     imageEventBox = GTK_WIDGET(gtk_builder_get_object(builder, "eventbox1"));
     image = GTK_WIDGET(gtk_builder_get_object(builder, "image1"));
@@ -61,7 +62,7 @@ int main(int argc, char *argv[]) {
     
 
     initMainWindow(window);
-
+    // Connection des wigdet aux différents signaux pour lancer les fonctions de réactions
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(openOption, "activate", G_CALLBACK(open_file), image);
     g_signal_connect(saveOption, "activate", G_CALLBACK(save_file), image);
@@ -70,11 +71,13 @@ int main(int argc, char *argv[]) {
     g_signal_connect(imageEventBox, "button-release-event", G_CALLBACK(on_mouse_button_release), image);
     g_signal_connect(G_OBJECT(algoSelector), "changed", G_CALLBACK(on_combo_box_changed), image);
     g_signal_connect(G_OBJECT(algoSelector), "button-release-event", G_CALLBACK(on_combo_box_changed), image);
-    g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_histogram), NULL);
-
+    g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_histogram), image);
+    
+    
 
     gtk_widget_show_all(window);
     gtk_main();
+    g_object_unref(G_OBJECT(builder));
 
     return 0;
 }
